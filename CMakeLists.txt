@@ -10,10 +10,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(bacpipe
     src/main.cpp
+    src/application.cpp
+    src/core/thread_resolver.cpp
 )
+
+target_include_directories(bacpipe PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
 target_compile_features(bacpipe PRIVATE cxx_std_23)
 
-set_target_properties(bacpipe PROPERTIES
-    CXX_EXTENSIONS OFF
-)
+set_target_properties(bacpipe PROPERTIES CXX_EXTENSIONS OFF)
