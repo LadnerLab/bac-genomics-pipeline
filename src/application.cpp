@@ -1,5 +1,6 @@
 #include "bacpipe/application.hpp"
 
+#include "bacpipe/core/logger.hpp"
 #include "bacpipe/core/runner.hpp"
 #include "bacpipe/core/thread_resolver.hpp"
 #include "bacpipe/pipeline/pipeline_step.hpp"
@@ -61,13 +62,13 @@ int Application::run() const {
     }
 
     if (!is_known_command(config.command)) {
-        std::cerr << "Unknown command: " << config.command << '\n';
+        Logger::error("Unknown command: " + config.command);
         print_help();
         return 1;
     }
 
     if (config.barcode.empty()) {
-        std::cerr << "Missing barcode argument\n";
+        Logger::error("Missing barcode argument");
         print_help();
         return 1;
     }
@@ -77,14 +78,14 @@ int Application::run() const {
     const std::vector<PipelineStep> steps = build_pipeline_steps(config);
 
     if (steps.empty()) {
-        std::cerr << "No pipeline steps were built" << std::endl;
+        Logger::error("No pipeline steps were built");
         return 1;
     }
 
     const Runner runner{
         RunnerOptions{.dry_run = true, .skip_existing = true, .stop_on_error = true}};
 
-    runner.run_all(steps);
+    const std::vector<bacpipe::RunnerResult> results = runner.run_all(steps);
 
     return 0;
 }
@@ -123,11 +124,11 @@ void Application::print_help() {
 }
 
 void Application::print_run_summary(const PipelineConfig &config) {
-    std::cout << "bac-genomics-pipeline configuration\n\n"
-              << "Command: " << config.command << '\n'
-              << "Barcode: " << config.barcode << '\n'
-              << "Threads: " << config.threads << '\n'
-              << "Project root: " << config.project_root.string() << '\n';
+    Logger::info("bac-genomics-pipeline configuration");
+    Logger::info("Command: " + config.command);
+    Logger::info("Barcode: " + config.barcode);
+    Logger::info("Threads: " + std::to_string(config.threads));
+    Logger::info("Project root: " + config.project_root.string());
 }
 
 } // namespace bacpipe

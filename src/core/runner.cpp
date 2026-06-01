@@ -1,4 +1,5 @@
 #include "bacpipe/core/runner.hpp"
+#include "bacpipe/core/logger.hpp"
 
 #include <cstdlib>
 #include <filesystem>
@@ -61,13 +62,13 @@ RunnerResult Runner::run(const PipelineStep &step) const {
 
     // skip run-step if data already existing for current step
     if (options_.skip_existing && step.skip_when_outputs_exist && step.outputs_exist()) {
-        std::cout << "[skip] " << step.name << std::endl;
+        Logger::skip(step.name);
 
         return RunnerResult{.step_name = step.name, .exit_code = 0, .skipped = true};
     }
 
-    std::cout << "[step] " << step.name << std::endl;
-    std::cout << "[cmd] " << step.command << std::endl;
+    Logger::step(step.name);
+    Logger::command(step.command);
 
     // return early on dry-runs
     if (options_.dry_run) {

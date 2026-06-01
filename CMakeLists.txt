@@ -11,6 +11,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_executable(bacpipe
     src/main.cpp
     src/application.cpp
+    src/core/logger.cpp
     src/core/runner.cpp
     src/core/thread_resolver.cpp
     src/pipeline/pipeline_step.cpp
