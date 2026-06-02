@@ -22,6 +22,7 @@ add_executable(bacpipe
     src/pipeline/pipeline_step.cpp
     src/pipeline/trim.cpp
     src/pipeline/assemble.cpp
+    src/pipeline/circularize.cpp
 )
 
 target_include_directories(bacpipe PRIVATE ${PROJECT_SOURCE_DIR}/include)

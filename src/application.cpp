@@ -6,6 +6,7 @@
 #include "bacpipe/pipeline/pipeline_step.hpp"
 
 #include "bacpipe/pipeline/assemble.hpp"
+#include "bacpipe/pipeline/circularize.hpp"
 #include "bacpipe/pipeline/trim.hpp"
 
 #include <exception>
@@ -27,19 +28,20 @@ std::vector<bacpipe::PipelineStep> build_pipeline_steps(const bacpipe::PipelineC
     }
 
     if (config.command == "circularize") {
-        return {bacpipe::PipelineStep{.name = "Circularize trimmed assembly with Circlator",
-                                      .command = "echo Circlator would run for " + barcode,
-                                      .working_directory = project_root}};
+        return bacpipe::build_circularize_steps(config);
     }
 
     if (config.command == "run") {
         std::vector<bacpipe::PipelineStep> steps = bacpipe::build_trim_steps(config);
+
         const std::vector<bacpipe::PipelineStep> assemble_steps =
             bacpipe::build_assemble_steps(config);
         steps.insert(steps.end(), assemble_steps.begin(), assemble_steps.end());
-        steps.push_back(bacpipe::PipelineStep{.name = "Circularize assembly with Circlator",
-                                              .command = "echo circlator would run for " + barcode,
-                                              .working_directory = project_root});
+
+        const std::vector<bacpipe::PipelineStep> circularize_steps =
+            bacpipe::build_circularize_steps(config);
+        steps.insert(steps.end(), circularize_steps.begin(), circularize_steps.end());
+
         return steps;
     }
 
