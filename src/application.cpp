@@ -5,6 +5,10 @@
 #include "bacpipe/core/thread_resolver.hpp"
 #include "bacpipe/pipeline/pipeline_step.hpp"
 
+#include "bacpipe/pipeline/assemble.hpp"
+#include "bacpipe/pipeline/trim.hpp"
+
+#include <exception>
 #include <iostream>
 #include <vector>
 
@@ -15,15 +19,11 @@ std::vector<bacpipe::PipelineStep> build_pipeline_steps(const bacpipe::PipelineC
     const std::filesystem::path project_root = config.project_root;
 
     if (config.command == "trim") {
-        return {bacpipe::PipelineStep{.name = "Trim reads with Porechop",
-                                      .command = "echo Porechop would run for " + barcode,
-                                      .working_directory = project_root}};
+        return bacpipe::build_trim_steps(config);
     }
 
     if (config.command == "assemble") {
-        return {bacpipe::PipelineStep{.name = "Assemble reads with Flye",
-                                      .command = "echo Flye would run for " + barcode,
-                                      .working_directory = project_root}};
+        return bacpipe::build_assemble_steps(config);
     }
 
     if (config.command == "circularize") {
@@ -33,15 +33,14 @@ std::vector<bacpipe::PipelineStep> build_pipeline_steps(const bacpipe::PipelineC
     }
 
     if (config.command == "run") {
-        return {bacpipe::PipelineStep{.name = "Trim reads with Porechop",
-                                      .command = "echo porechop would run for " + barcode,
-                                      .working_directory = project_root},
-                bacpipe::PipelineStep{.name = "Assemble reads with Flye",
-                                      .command = "echo flye would run for " + barcode,
-                                      .working_directory = project_root},
-                bacpipe::PipelineStep{.name = "Circularize assembly with Circlator",
-                                      .command = "echo circlator would run for " + barcode,
-                                      .working_directory = project_root}};
+        std::vector<bacpipe::PipelineStep> steps = bacpipe::build_trim_steps(config);
+        const std::vector<bacpipe::PipelineStep> assemble_steps =
+            bacpipe::build_assemble_steps(config);
+        steps.insert(steps.end(), assemble_steps.begin(), assemble_steps.end());
+        steps.push_back(bacpipe::PipelineStep{.name = "Circularize assembly with Circlator",
+                                              .command = "echo circlator would run for " + barcode,
+                                              .working_directory = project_root});
+        return steps;
     }
 
     return {};
@@ -73,21 +72,26 @@ int Application::run() const {
         return 1;
     }
 
-    print_run_summary(config);
+    try {
+        print_run_summary(config);
 
-    const std::vector<PipelineStep> steps = build_pipeline_steps(config);
+        const std::vector<PipelineStep> steps = build_pipeline_steps(config);
 
-    if (steps.empty()) {
-        Logger::error("No pipeline steps were built");
+        if (steps.empty()) {
+            Logger::error("No pipeline steps were built");
+            return 1;
+        }
+
+        const Runner runner{
+            RunnerOptions{.dry_run = true, .skip_existing = true, .stop_on_error = true}};
+
+        const std::vector<bacpipe::RunnerResult> results = runner.run_all(steps);
+
+        return 0;
+    } catch (const std::exception &error) {
+        Logger::error(error.what());
         return 1;
     }
-
-    const Runner runner{
-        RunnerOptions{.dry_run = true, .skip_existing = true, .stop_on_error = true}};
-
-    const std::vector<bacpipe::RunnerResult> results = runner.run_all(steps);
-
-    return 0;
 }
 
 PipelineConfig Application::parse_args() const {

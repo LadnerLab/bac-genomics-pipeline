@@ -50,6 +50,7 @@ results/
 outputs/
 
 # Large bioinformatics files
+data/*
 *.fastq
 *.fastq.gz
 *.fq

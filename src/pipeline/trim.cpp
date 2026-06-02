@@ -1,32 +1,16 @@
 #include "bacpipe/pipeline/trim.hpp"
-
 #include "bacpipe/core/file_discovery.hpp"
 #include "bacpipe/core/path_builder.hpp"
+#include "bacpipe/core/shell.hpp"
 
+#include <cstdint>
 #include <filesystem>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace {
-
-std::string shell_quote(std::string_view value) {
-    std::string result{""};
-
-    for (const char char_ : value) {
-        if (char_ == '\'') {
-            result += "'\\''";
-        } else {
-            result += char_;
-        }
-    }
-    result += "'";
-    return result;
-}
-
-std::string shell_quote(const std::filesystem::path &path) {
-    return shell_quote(path.string());
-}
 
 std::string remove_fastq_suffix(std::string filename) {
     constexpr std::string_view fastq_gz{".fastq.gz"};
@@ -44,7 +28,7 @@ std::string remove_fastq_suffix(std::string filename) {
 std::filesystem::path make_trimmed_output_path(const std::filesystem::path &output_dir,
                                                const std::filesystem::path &input_file) {
     const std::string base_name = remove_fastq_suffix(input_file.filename().string());
-    return output_dir / (base_name + "trimmed.fastq.gz");
+    return output_dir / (base_name + ".trimmed.fastq.gz");
 }
 
 std::string build_porechop_command(const std::filesystem::path &input_file,
@@ -53,9 +37,9 @@ std::string build_porechop_command(const std::filesystem::path &input_file,
                                    std::uint32_t threads) {
     std::ostringstream command{};
 
-    command << "mkdir -p " << shell_quote(output_dir) << " && porechop"
-            << " -i " << shell_quote(input_file) << " -o " << shell_quote(output_file)
-            << " --threads " << threads;
+    command << "mkdir -p " << bacpipe::shell_quote(output_dir.string()) << " && porechop"
+            << " -i " << bacpipe::shell_quote(input_file.string()) << " -o "
+            << bacpipe::shell_quote(output_file.string()) << " --threads " << threads;
 
     return command.str();
 }

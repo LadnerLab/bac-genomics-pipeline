@@ -11,10 +11,17 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_executable(bacpipe
     src/main.cpp
     src/application.cpp
+
+    src/core/file_discovery.cpp
     src/core/logger.cpp
+    src/core/path_builder.cpp
     src/core/runner.cpp
+    src/core/shell.cpp
     src/core/thread_resolver.cpp
+
     src/pipeline/pipeline_step.cpp
+    src/pipeline/trim.cpp
+    src/pipeline/assemble.cpp
 )
 
 target_include_directories(bacpipe PRIVATE ${PROJECT_SOURCE_DIR}/include)

@@ -10,6 +10,9 @@ class PathBuilder {
   public:
     [[nodiscard]] static std::filesystem::path raw_reads_dir(const PipelineConfig &config);
     [[nodiscard]] static std::filesystem::path trimmed_reads_dir(const PipelineConfig &config);
+
+    [[nodiscard]] static std::filesystem::path assembly_dir(const PipelineConfig &config);
+    [[nodiscard]] static std::filesystem::path assembly_fasta(const PipelineConfig &config);
 };
 
 } // namespace bacpipe
