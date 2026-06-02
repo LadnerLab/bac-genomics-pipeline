@@ -15,37 +15,45 @@
 
 namespace {
 
-std::vector<bacpipe::PipelineStep> build_pipeline_steps(const bacpipe::PipelineConfig &config) {
-    const std::string barcode = config.barcode;
-    const std::filesystem::path project_root = config.project_root;
+std::vector<bacpipe::RunnerResult> run_steps(const bacpipe::Runner &runner,
+                                             const std::vector<bacpipe::PipelineStep> &steps) {
+    if (steps.empty()) {
+        throw std::runtime_error{"No pipeline steps were built"};
+    }
+    return runner.run_all(steps);
+}
+
+std::vector<bacpipe::RunnerResult> run_requested_pipeline(const bacpipe::PipelineConfig &config,
+                                                          const bacpipe::Runner &runner) {
+    std::vector<bacpipe::RunnerResult> results{};
+
+    auto append_results = [&results](std::vector<bacpipe::RunnerResult> next_results) {
+        results.insert(results.end(), next_results.begin(), next_results.end());
+    };
 
     if (config.command == "trim") {
-        return bacpipe::build_trim_steps(config);
+        append_results(run_steps(runner, bacpipe::build_trim_steps(config)));
+        return results;
     }
 
     if (config.command == "assemble") {
-        return bacpipe::build_assemble_steps(config);
+        append_results(run_steps(runner, bacpipe::build_assemble_steps(config)));
+        return results;
     }
 
     if (config.command == "circularize") {
-        return bacpipe::build_circularize_steps(config);
+        append_results(run_steps(runner, bacpipe::build_circularize_steps(config)));
+        return results;
     }
 
     if (config.command == "run") {
-        std::vector<bacpipe::PipelineStep> steps = bacpipe::build_trim_steps(config);
-
-        const std::vector<bacpipe::PipelineStep> assemble_steps =
-            bacpipe::build_assemble_steps(config);
-        steps.insert(steps.end(), assemble_steps.begin(), assemble_steps.end());
-
-        const std::vector<bacpipe::PipelineStep> circularize_steps =
-            bacpipe::build_circularize_steps(config);
-        steps.insert(steps.end(), circularize_steps.begin(), circularize_steps.end());
-
-        return steps;
+        append_results(run_steps(runner, bacpipe::build_trim_steps(config)));
+        append_results(run_steps(runner, bacpipe::build_assemble_steps(config)));
+        append_results(run_steps(runner, bacpipe::build_circularize_steps(config)));
+        return results;
     }
 
-    return {};
+    return results;
 }
 
 } // namespace
@@ -77,18 +85,17 @@ int Application::run() const {
     try {
         print_run_summary(config);
 
-        const std::vector<PipelineStep> steps = build_pipeline_steps(config);
-
-        if (steps.empty()) {
-            Logger::error("No pipeline steps were built");
-            return 1;
-        }
-
         const Runner runner{
             RunnerOptions{.dry_run = true, .skip_existing = true, .stop_on_error = true}};
 
-        const std::vector<bacpipe::RunnerResult> results = runner.run_all(steps);
+        const std::vector<bacpipe::RunnerResult> results = run_requested_pipeline(config, runner);
 
+        if (results.empty()) {
+            Logger::error("No pipeline steps were ran");
+            return 1;
+        }
+
+        Logger::info("Pipeline completed successfully");
         return 0;
     } catch (const std::exception &error) {
         Logger::error(error.what());
