@@ -11,6 +11,9 @@
 
 #include <exception>
 #include <iostream>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -56,6 +59,20 @@ std::vector<bacpipe::RunnerResult> run_requested_pipeline(const bacpipe::Pipelin
     return results;
 }
 
+bool has_option(std::span<char *> args, std::string_view option) {
+    std::size_t i;
+    for (i = 1; i < args.size(); ++i) {
+        if (std::string_view{args[i]} == option) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool is_option(std::string_view arg) {
+    return arg.starts_with("--");
+}
+
 } // namespace
 
 namespace bacpipe {
@@ -63,30 +80,32 @@ namespace bacpipe {
 Application::Application(std::span<char *> args) : args_{args} {}
 
 int Application::run() const {
-    const PipelineConfig config = parse_args();
-
-    if (config.command == "help") {
-        print_help();
-        return 0;
-    }
-
-    if (!is_known_command(config.command)) {
-        Logger::error("Unknown command: " + config.command);
-        print_help();
-        return 1;
-    }
-
-    if (config.barcode.empty()) {
-        Logger::error("Missing barcode argument");
-        print_help();
-        return 1;
-    }
-
     try {
+        const bool dry_run = has_option(args_, "--dry-run");
+        const PipelineConfig config = parse_args();
+
+        if (config.command == "help") {
+            print_help();
+            return 0;
+        }
+
+        if (!is_known_command(config.command)) {
+            Logger::error("Unknown command: " + config.command);
+            print_help();
+            return 1;
+        }
+
+        if (config.barcode.empty()) {
+            Logger::error("Missing barcode argument");
+            print_help();
+            return 1;
+        }
+
         print_run_summary(config);
+        Logger::info(std::string{"Dry run: "} + (dry_run ? "true" : "false"));
 
         const Runner runner{
-            RunnerOptions{.dry_run = true, .skip_existing = true, .stop_on_error = true}};
+            RunnerOptions{.dry_run = dry_run, .skip_existing = true, .stop_on_error = true}};
 
         const std::vector<bacpipe::RunnerResult> results = run_requested_pipeline(config, runner);
 
@@ -107,13 +126,32 @@ PipelineConfig Application::parse_args() const {
     PipelineConfig config;
     config.threads = ThreadResolver::resolve_default();
 
-    if (args_.size() >= 2) {
-        config.command = args_[1];
+    std::vector<std::string_view> positionals{};
+    std::size_t i;
+    for (i = 1; i < args_.size(); ++i) {
+        const std::string_view arg{args_[i]};
+
+        if (arg == "--dry-run") {
+            continue;
+        }
+
+        if (is_option(arg)) {
+            throw std::runtime_error{"Unknown option: " + std::string{arg}};
+        }
+
+        positionals.push_back(arg);
     }
 
-    // likely calling other command and passing barcode
-    if (args_.size() >= 3) {
-        config.barcode = args_[2];
+    if (!positionals.empty()) {
+        config.command = std::string{positionals[0]};
+    }
+
+    if (positionals.size() >= 2) {
+        config.barcode = std::string{positionals[1]};
+    }
+
+    if (positionals.size() > 2) {
+        throw std::runtime_error{"Too many positional arguments"};
     }
 
     return config;
@@ -127,12 +165,14 @@ bool Application::is_known_command(std::string_view command) {
 void Application::print_help() {
     std::cout << "bac-genomics-pipeline\n\n"
               << "Usage:\n"
-              << "  bacpipe trim <barcode>\n"
-              << "  bacpipe assemble <barcode>\n"
-              << "  bacpipe circularize <barcode>\n"
-              << "  bacpipe run <barcode>\n\n"
+              << "  bacpipe trim <barcode> [--dry-run]\n"
+              << "  bacpipe assemble <barcode> [--dry-run]\n"
+              << "  bacpipe circularize <barcode> [--dry-run]\n"
+              << "  bacpipe run <barcode> [--dry-run]\n\n"
+              << "Options:\n"
+              << "  --dry-run    Print commands without executing them\n\n"
               << "Examples:\n"
-              << "  bacpipe trim barcode05\n"
+              << "  bacpipe trim barcode05 --dry-run\n"
               << "  bacpipe run barcode05\n";
 }
 
