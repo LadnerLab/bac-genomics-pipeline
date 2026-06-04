@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bacpipe/pipeline_config.hpp"
+#include "bacpipe/config/pipeline_config.hpp"
 
 #include <span>
 #include <string_view>

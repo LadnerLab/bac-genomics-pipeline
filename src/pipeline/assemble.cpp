@@ -13,11 +13,12 @@ namespace {
 
 std::string build_flye_command(const std::vector<std::filesystem::path> &trimmed_reads,
                                const std::filesystem::path &output_dir,
+                               const bacpipe::ToolConfig &tool,
                                std::uint32_t threads) {
     std::ostringstream command{};
 
-    command << "mkdir -p " << bacpipe::shell_quote(output_dir.parent_path().string()) << " && flye"
-            << " --nano-hq";
+    command << "mkdir -p " << bacpipe::shell_quote(output_dir.parent_path().string()) << " && "
+            << bacpipe::shell_quote(tool.executable) << bacpipe::join_shell_args(tool.extra_args);
 
     for (const auto &read_file : trimmed_reads) {
         command << " " << bacpipe::shell_quote(read_file.string());
@@ -41,11 +42,12 @@ std::vector<PipelineStep> build_assemble_steps(const PipelineConfig &config) {
     const std::vector<std::filesystem::path> trimmed_reads =
         FileDiscovery::find_fastq_files(trimmed_dir);
 
-    return {PipelineStep{.name = "Assemble reads with Flye",
-                         .command = build_flye_command(trimmed_reads, output_dir, config.threads),
-                         .working_directory = config.project_root,
-                         .expected_outputs = {expected_assembly},
-                         .skip_when_outputs_exist = true}};
+    return {PipelineStep{
+        .name = "Assemble reads with Flye",
+        .command = build_flye_command(trimmed_reads, output_dir, config.flye, config.threads),
+        .working_directory = config.project_root,
+        .expected_outputs = {expected_assembly},
+        .skip_when_outputs_exist = true}};
 }
 
 } // namespace bacpipe

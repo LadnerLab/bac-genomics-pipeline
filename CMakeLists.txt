@@ -14,6 +14,9 @@ add_executable(bacpipe
     src/main.cpp
     src/application.cpp
 
+    src/config/config_loader.cpp
+    src/config/path_expander.cpp
+
     src/core/file_discovery.cpp
     src/core/logger.cpp
     src/core/path_builder.cpp

@@ -1,5 +1,7 @@
 #include "bacpipe/application.hpp"
 
+#include "bacpipe/config/config_loader.hpp"
+
 #include "bacpipe/core/logger.hpp"
 #include "bacpipe/core/runner.hpp"
 #include "bacpipe/core/thread_resolver.hpp"
@@ -26,6 +28,25 @@ std::vector<bacpipe::RunnerResult> run_steps(const bacpipe::Runner &runner,
     return runner.run_all(steps);
 }
 
+std::vector<bacpipe::RunnerResult> run_single_step(const bacpipe::PipelineConfig &config,
+                                                   const bacpipe::Runner &runner,
+                                                   std::string_view step_name) {
+    if (step_name == "trim") {
+        return run_steps(runner, bacpipe::build_trim_steps(config));
+    }
+
+    if (step_name == "assemble") {
+        return run_steps(runner, bacpipe::build_assemble_steps(config));
+    }
+
+    if (step_name == "circularize") {
+        return run_steps(runner, bacpipe::build_circularize_steps(config));
+    }
+
+    throw std::runtime_error{"Unknown or unsupported pipeline step in configuration: " +
+                             std::string{step_name}};
+}
+
 std::vector<bacpipe::RunnerResult> run_requested_pipeline(const bacpipe::PipelineConfig &config,
                                                           const bacpipe::Runner &runner) {
     std::vector<bacpipe::RunnerResult> results{};
@@ -34,25 +55,18 @@ std::vector<bacpipe::RunnerResult> run_requested_pipeline(const bacpipe::Pipelin
         results.insert(results.end(), next_results.begin(), next_results.end());
     };
 
-    if (config.command == "trim") {
-        append_results(run_steps(runner, bacpipe::build_trim_steps(config)));
+    // step-by-step commands
+    if (config.command == "trim" || config.command == "assemble" ||
+        config.command == "circularize") {
+        append_results(run_single_step(config, runner, config.command));
         return results;
     }
 
-    if (config.command == "assemble") {
-        append_results(run_steps(runner, bacpipe::build_assemble_steps(config)));
-        return results;
-    }
-
-    if (config.command == "circularize") {
-        append_results(run_steps(runner, bacpipe::build_circularize_steps(config)));
-        return results;
-    }
-
+    // full e2e pipeline
     if (config.command == "run") {
-        append_results(run_steps(runner, bacpipe::build_trim_steps(config)));
-        append_results(run_steps(runner, bacpipe::build_assemble_steps(config)));
-        append_results(run_steps(runner, bacpipe::build_circularize_steps(config)));
+        for (const auto &step_name : config.pipeline_steps) {
+            append_results(run_single_step(config, runner, step_name));
+        }
         return results;
     }
 
@@ -89,14 +103,14 @@ int Application::run() const {
             return 0;
         }
 
-        if (!is_known_command(config.command)) {
-            Logger::error("Unknown command: " + config.command);
+        if (config.barcode.empty()) {
+            Logger::error("Missing barcode argument, see help below:\n");
             print_help();
             return 1;
         }
 
-        if (config.barcode.empty()) {
-            Logger::error("Missing barcode argument");
+        if (!is_known_command(config.command)) {
+            Logger::error("Unknown command: '" + config.command + "', see help below:\n");
             print_help();
             return 1;
         }
@@ -104,8 +118,9 @@ int Application::run() const {
         print_run_summary(config);
         Logger::info(std::string{"Dry run: "} + (dry_run ? "true" : "false"));
 
-        const Runner runner{
-            RunnerOptions{.dry_run = dry_run, .skip_existing = true, .stop_on_error = true}};
+        const Runner runner{RunnerOptions{.dry_run = dry_run,
+                                          .skip_existing = config.skip_existing,
+                                          .stop_on_error = config.stop_on_error}};
 
         const std::vector<bacpipe::RunnerResult> results = run_requested_pipeline(config, runner);
 
@@ -126,7 +141,9 @@ PipelineConfig Application::parse_args() const {
     PipelineConfig config;
     config.threads = ThreadResolver::resolve_default();
 
+    std::optional<std::filesystem::path> config_file{};
     std::vector<std::string_view> positionals{};
+
     std::size_t i;
     for (i = 1; i < args_.size(); ++i) {
         const std::string_view arg{args_[i]};
@@ -135,11 +152,26 @@ PipelineConfig Application::parse_args() const {
             continue;
         }
 
+        if (arg == "config") {
+            if (i + 1 >= args_.size()) {
+                throw std::runtime_error{"Missing file after --config"};
+            }
+
+            // grab file then skip path arg
+            config_file = std::filesystem::path{args_[i + 1]};
+            ++i;
+            continue;
+        }
+
         if (is_option(arg)) {
             throw std::runtime_error{"Unknown option: " + std::string{arg}};
         }
 
         positionals.push_back(arg);
+    }
+
+    if (config_file) {
+        config = ConfigLoader::load(*config_file, config);
     }
 
     if (!positionals.empty()) {
@@ -165,15 +197,16 @@ bool Application::is_known_command(std::string_view command) {
 void Application::print_help() {
     std::cout << "bac-genomics-pipeline\n\n"
               << "Usage:\n"
-              << "  bacpipe trim <barcode> [--dry-run]\n"
-              << "  bacpipe assemble <barcode> [--dry-run]\n"
-              << "  bacpipe circularize <barcode> [--dry-run]\n"
-              << "  bacpipe run <barcode> [--dry-run]\n\n"
+              << "  bacpipe trim <barcode> [--config <path>] [--dry-run]\n"
+              << "  bacpipe assemble <barcode> [--config <path>] [--dry-run]\n"
+              << "  bacpipe circularize <barcode> [--config <path>] [--dry-run]\n"
+              << "  bacpipe run <barcode> [--config <path>] [--dry-run]\n\n"
               << "Options:\n"
-              << "  --dry-run    Print commands without executing them\n\n"
+              << "  --config <path>    Read pipeline settings from a TOML file\n"
+              << "  --dry-run          Print commands without executing them\n\n"
               << "Examples:\n"
               << "  bacpipe trim barcode05 --dry-run\n"
-              << "  bacpipe run barcode05\n";
+              << "  bacpipe run barcode05 --config bacpipe.toml --dry-run\n";
 }
 
 void Application::print_run_summary(const PipelineConfig &config) {
@@ -182,6 +215,10 @@ void Application::print_run_summary(const PipelineConfig &config) {
     Logger::info("Barcode: " + config.barcode);
     Logger::info("Threads: " + std::to_string(config.threads));
     Logger::info("Project root: " + config.project_root.string());
+
+    if (config.config_file) {
+        Logger::info("Config file: " + config.config_file->string());
+    }
 }
 
 } // namespace bacpipe

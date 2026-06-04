@@ -1,7 +1,7 @@
 #pragma once
 
+#include "bacpipe/config/pipeline_config.hpp"
 #include "bacpipe/pipeline/pipeline_step.hpp"
-#include "bacpipe/pipeline_config.hpp"
 
 #include <vector>
 

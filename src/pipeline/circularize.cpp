@@ -31,11 +31,13 @@ std::string build_combine_reads_command(const std::vector<std::filesystem::path>
 std::string build_circlator_command(const std::filesystem::path &assembly_fasta,
                                     const std::filesystem::path &combined_reads,
                                     const std::filesystem::path &output_dir,
+                                    const bacpipe::ToolConfig &tool,
                                     std::uint32_t threads) {
     std::ostringstream command{};
 
-    command << "mkdir -p " << bacpipe::shell_quote(output_dir.string()) << " && circlator all"
-            << " --threads " << threads << " --verbose "
+    command << "mkdir -p " << bacpipe::shell_quote(output_dir.string()) << " && "
+            << bacpipe::shell_quote(tool.executable) << " all"
+            << " --threads " << threads << bacpipe::join_shell_args(tool.extra_args) << " "
             << bacpipe::shell_quote(assembly_fasta.string()) << " "
             << bacpipe::shell_quote(combined_reads.string()) << " "
             << bacpipe::shell_quote(output_dir.string());
@@ -78,6 +80,7 @@ std::vector<PipelineStep> build_circularize_steps(const PipelineConfig &config) 
                          .command = build_circlator_command(assembly_fasta,
                                                             combined_reads,
                                                             circlator_dir,
+                                                            config.circlator,
                                                             config.threads),
                          .working_directory = config.project_root,
                          .expected_outputs = {final_fasta, circularize_log},

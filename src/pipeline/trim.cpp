@@ -34,10 +34,12 @@ std::filesystem::path make_trimmed_output_path(const std::filesystem::path &outp
 std::string build_porechop_command(const std::filesystem::path &input_file,
                                    const std::filesystem::path &output_file,
                                    const std::filesystem::path &output_dir,
+                                   const bacpipe::ToolConfig &tool,
                                    std::uint32_t threads) {
     std::ostringstream command{};
 
-    command << "mkdir -p " << bacpipe::shell_quote(output_dir.string()) << " && porechop"
+    command << "mkdir -p " << bacpipe::shell_quote(output_dir.string()) << " && "
+            << bacpipe::shell_quote(tool.executable) << bacpipe::join_shell_args(tool.extra_args)
             << " -i " << bacpipe::shell_quote(input_file.string()) << " -o "
             << bacpipe::shell_quote(output_file.string()) << " --threads " << threads;
 
@@ -61,12 +63,16 @@ std::vector<PipelineStep> build_trim_steps(const PipelineConfig &config) {
     for (const auto &input_file : input_files) {
         const std::filesystem::path output_file = make_trimmed_output_path(output_dir, input_file);
 
-        steps.push_back(PipelineStep{
-            .name = "Trim reads with Porechop: " + input_file.filename().string(),
-            .command = build_porechop_command(input_file, output_file, output_dir, config.threads),
-            .working_directory = config.project_root,
-            .expected_outputs = {output_file},
-            .skip_when_outputs_exist = true});
+        steps.push_back(
+            PipelineStep{.name = "Trim reads with Porechop: " + input_file.filename().string(),
+                         .command = build_porechop_command(input_file,
+                                                           output_file,
+                                                           output_dir,
+                                                           config.porechop,
+                                                           config.threads),
+                         .working_directory = config.project_root,
+                         .expected_outputs = {output_file},
+                         .skip_when_outputs_exist = true});
     }
 
     return steps;

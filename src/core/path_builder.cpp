@@ -3,43 +3,43 @@
 namespace bacpipe {
 
 std::filesystem::path PathBuilder::raw_reads_dir(const PipelineConfig &config) {
-    return config.project_root / "data" / "raw" / config.barcode;
+    return bacpipe::expand_config_path(config.paths.raw_reads, config);
 }
 
 std::filesystem::path PathBuilder::trimmed_reads_dir(const PipelineConfig &config) {
-    return config.project_root / "data" / "trimmed" / (config.barcode + "_porechop");
+    return bacpipe::expand_config_path(config.paths.trimmed_reads, config);
 }
 
 std::filesystem::path PathBuilder::assembly_dir(const PipelineConfig &config) {
-    return config.project_root / "data" / "assembly" / (config.barcode + "_flye");
+    return bacpipe::expand_config_path(config.paths.assembly_dir, config);
 }
 
 std::filesystem::path PathBuilder::assembly_fasta(const PipelineConfig &config) {
-    return assembly_dir(config) / "assembly.fasta";
+    return bacpipe::expand_config_path(config.paths.assembly_fasta, config);
 }
 
 std::filesystem::path PathBuilder::circularization_dir(const PipelineConfig &config) {
-    return config.project_root / "data" / "circularized" / (config.barcode + "_circlator");
+    return bacpipe::expand_config_path(config.paths.circularization_dir, config);
 }
 
 std::filesystem::path PathBuilder::circularization_reads_dir(const PipelineConfig &config) {
-    return circularization_dir(config) / "00_reads";
+    return bacpipe::expand_config_path(config.paths.circularization_reads_dir, config);
 }
 
 std::filesystem::path PathBuilder::combined_trimmed_reads_fastq(const PipelineConfig &config) {
-    return circularization_reads_dir(config) / (config.barcode + ".trimmed.combined.fastq.gz");
+    return bacpipe::expand_config_path(config.paths.combined_trimmed_reads, config);
 }
 
 std::filesystem::path PathBuilder::circlator_output_dir(const PipelineConfig &config) {
-    return circularization_dir(config) / "01_circlator";
+    return bacpipe::expand_config_path(config.paths.circlator_output_dir, config);
 }
 
 std::filesystem::path PathBuilder::circularized_fasta(const PipelineConfig &config) {
-    return circlator_output_dir(config) / "06.fixstart.fasta";
+    return bacpipe::expand_config_path(config.paths.circularized_fasta, config);
 }
 
 std::filesystem::path PathBuilder::circlator_circularize_log(const PipelineConfig &config) {
-    return circlator_output_dir(config) / "04.merge.circularise.log";
+    return bacpipe::expand_config_path(config.paths.circlator_circularize_log, config);
 }
 
 } // namespace bacpipe

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "bacpipe/pipeline_config.hpp"
+#include "bacpipe/config/path_expander.hpp"
+#include "bacpipe/config/pipeline_config.hpp"
 
 #include <filesystem>
 

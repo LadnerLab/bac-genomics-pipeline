@@ -1,0 +1,35 @@
+version = 1
+
+[pipeline]
+steps = ["trim", "assemble", "circularize"]
+
+[project]
+root = "."
+
+[runtime]
+skip_existing = true
+stop_on_error = true
+
+[paths]
+raw_reads = "data/raw/{barcode}"
+trimmed_reads = "data/trimmed/{barcode}_porechop"
+assembly_dir = "data/assembly/{barcode}_flye"
+assembly_fasta = "data/assembly/{barcode}_flye/assembly.fasta"
+circularization_dir = "data/circularized/{barcode}_circlator"
+circularization_reads_dir = "data/circularized/{barcode}_circlator/00_reads"
+combined_trimmed_reads = "data/circularized/{barcode}_circlator/00_reads/{barcode}.trimmed.combined.fastq.gz"
+circlator_output_dir = "data/circularized/{barcode}_circlator/01_circlator"
+circularized_fasta = "data/circularized/{barcode}_circlator/01_circlator/06.fixstart.fasta"
+circlator_circularize_log = "data/circularized/{barcode}_circlator/01_circlator/04.merge.circularise.log"
+
+[tools.porechop]
+executable = "porechop"
+extra_args = []
+
+[tools.flye]
+executable = "flye"
+extra_args = ["--nano-hq"]
+
+[tools.circlator]
+executable = "circlator"
+extra_args = ["--verbose"]
