@@ -152,7 +152,7 @@ PipelineConfig Application::parse_args() const {
             continue;
         }
 
-        if (arg == "config") {
+        if (arg == "--config") {
             if (i + 1 >= args_.size()) {
                 throw std::runtime_error{"Missing file after --config"};
             }

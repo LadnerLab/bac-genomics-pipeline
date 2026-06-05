@@ -11,16 +11,16 @@ skip_existing = true
 stop_on_error = true
 
 [paths]
-raw_reads = "data/raw/{barcode}"
-trimmed_reads = "data/trimmed/{barcode}_porechop"
-assembly_dir = "data/assembly/{barcode}_flye"
-assembly_fasta = "data/assembly/{barcode}_flye/assembly.fasta"
-circularization_dir = "data/circularized/{barcode}_circlator"
-circularization_reads_dir = "data/circularized/{barcode}_circlator/00_reads"
-combined_trimmed_reads = "data/circularized/{barcode}_circlator/00_reads/{barcode}.trimmed.combined.fastq.gz"
-circlator_output_dir = "data/circularized/{barcode}_circlator/01_circlator"
-circularized_fasta = "data/circularized/{barcode}_circlator/01_circlator/06.fixstart.fasta"
-circlator_circularize_log = "data/circularized/{barcode}_circlator/01_circlator/04.merge.circularise.log"
+raw_reads = "/projects/ladner_lab/bac_genomics/fastq_pass/{barcode}"
+trimmed_reads = "/projects/ladner_lab/bac_genomics/fastq_pass/trimmed/{barcode}_porechop"
+assembly_dir = "/projects/ladner_lab/bac_genomics/fastq_pass/assembly/{barcode}_flye"
+assembly_fasta = "/projects/ladner_lab/bac_genomics/fastq_pass/assembly/{barcode}_flye/assembly.fasta"
+circularization_dir = "/projects/ladner_lab/bac_genomics/fastq_pass/circularized/{barcode}_circlator"
+circularization_reads_dir = "/projects/ladner_lab/bac_genomics/fastq_pass/circularized/{barcode}_circlator/00_reads"
+combined_trimmed_reads = "/projects/ladner_lab/bac_genomics/fastq_pass/circularized/{barcode}_circlator/00_reads/{barcode}.trimmed.combined.fastq.gz"
+circlator_output_dir = "/projects/ladner_lab/bac_genomics/fastq_pass/circularized/{barcode}_circlator/01_circlator"
+circularized_fasta = "/projects/ladner_lab/bac_genomics/fastq_pass/circularized/{barcode}_circlator/01_circlator/06.fixstart.fasta"
+circlator_circularize_log = "/projects/ladner_lab/bac_genomics/fastq_pass/circularized/{barcode}_circlator/01_circlator/04.merge.circularise.log"
 
 [tools.porechop]
 executable = "porechop"

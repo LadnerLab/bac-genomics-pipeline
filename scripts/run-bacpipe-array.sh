@@ -1,10 +1,9 @@
 #!/bin/bash
 
 #SBATCH --job-name=bacpipe
-#SBATCH --partition=standard
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-node=8
+#SBATCH --cpus-per-task=8
 #SBATCH --mem=32GB
 #SBATCH --time=06:00:00
 #SBATCH --output=/scratch/%u/bacpipe_slurm/output/%x_%A_%a.out
@@ -26,7 +25,6 @@ usage() {
   echo "  CPUS_PER_TASK         default: 8"
   echo "  MEMORY                default: 32G"
   echo "  TIME_LIMIT            default: 24:00:00"
-  echo "  PARTITION             default: standard"
   echo ""
   echo "Examples:"
   echo "  ./scripts/run_bacpipe_array.sh"
@@ -40,20 +38,19 @@ if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
   exit 0
 fi
 
-PROJECT_ROOT="${PROJECT_ROOT:-/projects/ladner_lab/bac_genomics/...}"
-BARCODE_ROOT="${BARCODE_ROOT:-/projects/ladner_lab/bac_genomics/...}"
-BACPIPE_BIN="${BACPIPE_BIN:-${HOME}/bac_genomics/bacpipe}"
-CONFIG_FILE="${CONFIG_FILE:-${HOME}/bac_genomics/bacpipe.toml}"
+PROJECT_ROOT="${PROJECT_ROOT:-/projects/ladner_lab/bac_genomics/fastq_pass}"
+BARCODE_ROOT="${BARCODE_ROOT:-/projects/ladner_lab/bac_genomics/fastq_pass}"
+BACPIPE_BIN="${BACPIPE_BIN:-/projects/ladner_lab/bac_genomics/bac-genomics-pipeline/build/bacpipe}"
+CONFIG_FILE="${CONFIG_FILE:-/projects/ladner_lab/bac_genomics/bac-genomics-pipeline/bacpipe.toml}"
 
 COMMAND="${COMMAND:-run}"
 DRY_RUN="${DRY_RUN:-0}"
 CONDA_ENV="${CONDA_ENV:-bacpipe}"
 
 MAX_CONCURRENT_JOBS="${MAX_CONCURRENT_JOBS:-4}"
-CPUS_PER_TASK="${CPUS_PER_TASK:-8}"
+CPUS_PER_TASK="${CPUS_PER_TASK:-16}"
 MEMORY="${MEMORY:-32G}"
-TIME_LIMIT="${TIME_LIMIT:-02:00:00}"
-PARTITION="${PARTITION:-standard}"
+TIME_LIMIT="${TIME_LIMIT:-03:00:00}"
 
 SLURM_LOG_ROOT="${SLURM_LOG_ROOT:-/scratch/$USER/bacpipe_slurm}"
 SLURM_OUT_DIR="${SLURM_LOG_ROOT}/output"
@@ -106,16 +103,15 @@ if [ -z "${SLURM_JOB_ID:-}" ]; then
   echo "[bacpipe-submit] cpus_per_task=${CPUS_PER_TASK}"
   echo "[bacpipe-submit] memory=${MEMORY}"
   echo "[bacpipe-submit] time_limit=${TIME_LIMIT}"
-  echo "[bacpipe-submit] partition=${PARTITION}"
   echo "[bacpipe-submit] command=${COMMAND}"
   echo "[bacpipe-submit] dry_run=${DRY_RUN}"
 
   sbatch \
-    --array="0-${LAST_ARRAY_INDEX}%{MAX_CONCURRENT_JOBS}" \
-    --parition="${PARTITION}" \
+    --array="0-${LAST_ARRAY_INDEX}%${MAX_CONCURRENT_JOBS}" \
+    --cpus-per-task="${CPUS_PER_TASK}" \
     --mem="${MEMORY}" \
     --time="${TIME_LIMIT}" \
-    --export=ALL,PROJECT_ROOT="${PROJECT_ROOT}",BARCODE_ROOT="${BARCODE_ROOT}",BACPIPE_BIN="${BACPIPE_BIN}",CONFIG_FILE="${CONFIG_FILE}",COMMAND="${COMMAND}",DRY_RUN="${DRY_RUN}" \
+    --export=ALL,PROJECT_ROOT="${PROJECT_ROOT}",BARCODE_ROOT="${BARCODE_ROOT}",BACPIPE_BIN="${BACPIPE_BIN}",CONFIG_FILE="${CONFIG_FILE}",COMMAND="${COMMAND}",DRY_RUN="${DRY_RUN}",CONDA_ENV="${CONDA_ENV}" \
     "$0"
 
   exit 0
