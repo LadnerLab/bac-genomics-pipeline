@@ -17,7 +17,7 @@ std::string build_combine_reads_command(const std::vector<std::filesystem::path>
                                         const std::filesystem::path &reads_dir) {
     std::ostringstream command{};
 
-    command << "mkdir -p " << bacpipe::shell_quote(reads_dir.string()) << " && cat";
+    command << "mkdir -p " << bacpipe::shell_quote(reads_dir.string()) << " && seqkit fq2fa";
 
     for (const auto &read_file : trimmed_reads) {
         command << " " << bacpipe::shell_quote(read_file.string());
@@ -53,7 +53,7 @@ std::vector<PipelineStep> build_circularize_steps(const PipelineConfig &config) 
     const std::filesystem::path trimmed_dir = PathBuilder::trimmed_reads_dir(config);
     const std::filesystem::path assembly_fasta = PathBuilder::assembly_fasta(config);
     const std::filesystem::path reads_dir = PathBuilder::circularization_reads_dir(config);
-    const std::filesystem::path combined_reads = PathBuilder::combined_trimmed_reads_fastq(config);
+    const std::filesystem::path combined_reads = PathBuilder::combined_trimmed_reads_fasta(config);
     const std::filesystem::path circlator_dir = PathBuilder::circlator_output_dir(config);
     const std::filesystem::path final_fasta = PathBuilder::circularized_fasta(config);
     const std::filesystem::path circularize_log = PathBuilder::circlator_circularize_log(config);

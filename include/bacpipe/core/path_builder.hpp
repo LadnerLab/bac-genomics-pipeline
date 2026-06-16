@@ -20,6 +20,7 @@ class PathBuilder {
     circularization_reads_dir(const PipelineConfig &config);
     [[nodiscard]] static std::filesystem::path
     combined_trimmed_reads_fastq(const PipelineConfig &config);
+    [[nodiscard]] static std::filesystem::path combined_trimmed_reads_fasta(const PipelineConfig &config);
     [[nodiscard]] static std::filesystem::path circlator_output_dir(const PipelineConfig &config);
     [[nodiscard]] static std::filesystem::path circularized_fasta(const PipelineConfig &config);
     [[nodiscard]] static std::filesystem::path

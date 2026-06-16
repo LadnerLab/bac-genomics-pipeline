@@ -30,6 +30,10 @@ std::filesystem::path PathBuilder::combined_trimmed_reads_fastq(const PipelineCo
     return bacpipe::expand_config_path(config.paths.combined_trimmed_reads, config);
 }
 
+std::filesystem::path PathBuilder::combined_trimmed_reads_fasta(const PipelineConfig &config) {
+    return bacpipe::expand_config_path(config.paths.combined_trimmed_reads, config);
+}
+
 std::filesystem::path PathBuilder::circlator_output_dir(const PipelineConfig &config) {
     return bacpipe::expand_config_path(config.paths.circlator_output_dir, config);
 }
