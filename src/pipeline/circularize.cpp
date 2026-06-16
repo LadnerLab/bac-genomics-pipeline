@@ -35,7 +35,7 @@ std::string build_circlator_command(const std::filesystem::path &assembly_fasta,
                                     std::uint32_t threads) {
     std::ostringstream command{};
 
-    command << "mkdir -p " << bacpipe::shell_quote(output_dir.string()) << " && "
+    command << "mkdir -p " << bacpipe::shell_quote(output_dir.parent_path().string()) << " && "
             << bacpipe::shell_quote(tool.executable) << " all"
             << " --threads " << threads << bacpipe::join_shell_args(tool.extra_args) << " "
             << bacpipe::shell_quote(assembly_fasta.string()) << " "
