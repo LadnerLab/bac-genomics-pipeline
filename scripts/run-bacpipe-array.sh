@@ -31,7 +31,7 @@ usage() {
   echo "  ./scripts/run_bacpipe_array.sh"
   echo "  DRY_RUN=1 ./scripts/run_bacpipe_array.sh"
   echo "  COMMAND=trim DRY_RUN=1 ./scripts/run_bacpipe_array.sh"
-  echo "  CPUS_PER_TASK=16 MEMORY=64G MAX_CONCURRENT_JOBS=2 ./scripts/run_bacpipe_array.sh"
+  echo "  CPUS_PER_TASK=8 MEMORY=32G MAX_CONCURRENT_JOBS=2 ./scripts/run_bacpipe_array.sh"
   echo "  BARCODES_TO_RUN=\"barcode11 barcode12 barcode13\" COMMAND=run ./scripts/run-bacpipe-array.sh"
 }
 
@@ -51,7 +51,7 @@ DRY_RUN="${DRY_RUN:-0}"
 CONDA_ENV="${CONDA_ENV:-bacpipe}"
 
 MAX_CONCURRENT_JOBS="${MAX_CONCURRENT_JOBS:-4}"
-CPUS_PER_TASK="${CPUS_PER_TASK:-16}"
+CPUS_PER_TASK="${CPUS_PER_TASK:-8}"
 MEMORY="${MEMORY:-32G}"
 TIME_LIMIT="${TIME_LIMIT:-03:00:00}"
 
