@@ -14,11 +14,12 @@ usage() {
   echo "  ./scripts/run_bacpipe_array.sh"
   echo ""
   echo "Optional environment variables:"
-  echo "  PROJECT_ROOT          default: /projects/ladner_lab/bac_genomics/bac-genomics-pipeline"
-  echo "  BARCODE_ROOT          default: /projects/ladner_lab/bac_genomics/barcodes"
+  echo "  PROJECT_ROOT          default: /projects/ladner_lab/bac_genomics/fastq_pass"
+  echo "  BARCODE_ROOT          default: /projects/ladner_lab/bac_genomics/fastq_pass"
   echo "  BACPIPE_BIN           default: \${PROJECT_ROOT}/build/bacpipe"
   echo "  CONFIG_FILE           default: \${PROJECT_ROOT}/bacpipe.toml"
   echo "  COMMAND               default: run"
+  echo "  BARCODES_TO_RUN       default: empty; space-separated subset, e.g. \"barcode11 barcode12\""
   echo "  DRY_RUN               default: 0"
   echo "  CONDA_ENV             default: bacpipe"
   echo "  MAX_CONCURRENT_JOBS   default: 4"
@@ -31,6 +32,7 @@ usage() {
   echo "  DRY_RUN=1 ./scripts/run_bacpipe_array.sh"
   echo "  COMMAND=trim DRY_RUN=1 ./scripts/run_bacpipe_array.sh"
   echo "  CPUS_PER_TASK=16 MEMORY=64G MAX_CONCURRENT_JOBS=2 ./scripts/run_bacpipe_array.sh"
+  echo "  BARCODES_TO_RUN=\"barcode11 barcode12 barcode13\" COMMAND=run ./scripts/run-bacpipe-array.sh"
 }
 
 if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
@@ -43,6 +45,7 @@ BARCODE_ROOT="${BARCODE_ROOT:-/projects/ladner_lab/bac_genomics/fastq_pass}"
 BACPIPE_BIN="${BACPIPE_BIN:-/projects/ladner_lab/bac_genomics/bac-genomics-pipeline/build/bacpipe}"
 CONFIG_FILE="${CONFIG_FILE:-/projects/ladner_lab/bac_genomics/bac-genomics-pipeline/bacpipe.toml}"
 
+BARCODES_TO_RUN="${BARCODES_TO_RUN:-}"
 COMMAND="${COMMAND:-run}"
 DRY_RUN="${DRY_RUN:-0}"
 CONDA_ENV="${CONDA_ENV:-bacpipe}"
@@ -56,14 +59,34 @@ SLURM_LOG_ROOT="${SLURM_LOG_ROOT:-/scratch/$USER/bacpipe_slurm}"
 SLURM_OUT_DIR="${SLURM_LOG_ROOT}/output"
 SLURM_ERR_DIR="${SLURM_LOG_ROOT}/error"
 
-get_barcodes() {
-  find "${BARCODE_ROOT}" \
-    -mindepth 1 \
-    -maxdepth 1 \
-    -type d \
-    -name "barcode*" \
-    -printf "%f\n" \
-    | sort -V
+load_barcodes() {
+  BARCODES=()
+
+  if [ -n "${BARCODES_TO_RUN}" ]; then
+    for barcode in ${BARCODES_TO_RUN}; do
+      if [[ ! "${barcode}" =~ ^barcode[0-9]+$ ]]; then
+        echo "[bacpipe-error] invalid barcode name in BARCODES_TO_RUN: ${barcode}"
+        exit 1
+      fi
+
+      if [ ! -d "${BARCODE_ROOT}/${barcode}" ]; then
+        echo "[bacpipe-error] requested directory does not exist: ${BARCODE_ROOT}/${barcode}"
+        exit 1
+      fi
+
+      BARCODES+=("${barcode}")
+    done
+  else
+    mapfile -t BARCODES < <(
+      find "${BARCODE_ROOT}" \
+        -mindepth 1 \
+        -maxdepth 1 \
+        -type d \
+        -name "barcode*" \
+        -printf "%f\n" \
+        | sort -V
+    )
+  fi
 }
 
 # --------------------------------------------------------------------
@@ -86,7 +109,7 @@ if [ -z "${SLURM_JOB_ID:-}" ]; then
     exit 1
   fi
 
-  mapfile -t BARCODES < <(get_barcodes)
+  load_barcodes || exit 1
   BARCODE_COUNT="${#BARCODES[@]}"
 
   if [ "${BARCODE_COUNT}" -eq 0 ]; then
@@ -98,6 +121,8 @@ if [ -z "${SLURM_JOB_ID:-}" ]; then
 
   echo "[bacpipe-submit] project_root=${PROJECT_ROOT}"
   echo "[bacpipe-submit] barcode_root=${BARCODE_ROOT}"
+  echo "[bacpipe-submit] barcodes=${BARCODES[*]}"
+  echo "[bacpipe-submit] barcodes_to_run=${BARCODES_TO_RUN:-all}"
   echo "[bacpipe-submit] barcode_count=${BARCODE_COUNT}"
   echo "[bacpipe-submit] array=0-${LAST_ARRAY_INDEX}%${MAX_CONCURRENT_JOBS}"
   echo "[bacpipe-submit] cpus_per_task=${CPUS_PER_TASK}"
@@ -126,7 +151,7 @@ fi
 
 mkdir -p "${SLURM_OUT_DIR}" "${SLURM_ERR_DIR}"
 
-mapfile -t BARCODES < <(get_barcodes)
+load_barcodes || exit 1
 BARCODE_COUNT="${#BARCODES[@]}"
 TASK_ID="${SLURM_ARRAY_TASK_ID:-0}"
 
@@ -149,6 +174,8 @@ echo "[bacpipe] array_task_id=${SLURM_ARRAY_TASK_ID}"
 echo "[bacpipe] barcode_count=${BARCODE_COUNT}"
 echo "[bacpipe] barcode=${BARCODE}"
 echo "[bacpipe] barcode_dir=${BARCODE_DIR}"
+echo "[bacpipe] barcodes=${BARCODES[*]}"
+echo "[bacpipe] barcodes_to_run=${BARCODES_TO_RUN:-all}"
 echo "[bacpipe] project_root=${PROJECT_ROOT}"
 echo "[bacpipe] bacpipe_bin=${BACPIPE_BIN}"
 echo "[bacpipe] config_file=${CONFIG_FILE}"
