@@ -82,8 +82,12 @@ cmake --build build --parallel
 ## Quick Test
 
 ```bash
-./build/bacpipe run barcode05 --dry-run
+./build/bacpipe help
+./build/bacpipe trim barcode05 --config bacpipe.toml --dry-run
 ```
+
+Run `autocycler_assemble`, `medaka_polish`, or the full configured `run` dry run
+only after the prerequisite outputs for those stages exist.
 
 ## Notes
 

@@ -1,15 +1,18 @@
 # bac-genomics-pipeline
 
 `bacpipe` is a C++ command-line orchestrator for assembling bacterial genomes from
-barcoded Oxford Nanopore FASTQ reads. The current pipeline runs three stages:
+barcoded Oxford Nanopore FASTQ reads. The checked-in configuration runs three
+stages:
 
 1. adapter trimming with Porechop;
-2. de novo assembly with Flye; and
-3. read conversion with SeqKit followed by assembly circularization with Circlator.
+2. long-read consensus assembly with Autocycler; and
+3. Medaka polishing with the full, un-subsampled trimmed read set.
 
-Polishing and quality-control reporting are not implemented yet. Generated commands
-use POSIX shell features, so the supported execution environment is Linux. The
-primary deployment target is a Slurm-based HPC cluster (i.e., Monsoon).
+The legacy Flye-only assembly command remains available as `bacpipe assemble`.
+Circlator remains available as an optional explicit command. Quality-control
+reporting is not implemented yet. Generated commands use POSIX shell features, so
+the supported execution environment is Linux. The primary deployment target is a
+Slurm-based HPC cluster (i.e., Monsoon).
 
 ## HPC quick start
 
@@ -23,8 +26,9 @@ primary deployment target is a Slurm-based HPC cluster (i.e., Monsoon).
 
 ### Create the runtime environment
 
-The pipeline invokes four external programs at runtime. Create the environment on
-the Linux cluster with the `conda-forge` and `bioconda` channels in strict-priority
+The default configured pipeline invokes Porechop, Autocycler, the configured
+Autocycler helper assemblers, and Medaka at runtime. Create the environment on the
+Linux cluster with the `conda-forge` and `bioconda` channels in strict-priority
 mode:
 
 ```bash
@@ -35,7 +39,8 @@ conda create --name bacpipe \
   --channel conda-forge \
   --channel bioconda \
   --strict-channel-priority \
-  python=3.10 porechop flye circlator seqkit
+  porechop flye autocycler medaka raven-assembler miniasm minimap2 minipolish \
+  circlator seqkit
 
 conda activate bacpipe
 ```
@@ -43,7 +48,7 @@ conda activate bacpipe
 Confirm that every runtime executable is available (optional):
 
 ```bash
-for tool in porechop flye circlator seqkit; do
+for tool in porechop flye autocycler medaka_consensus raven miniasm minimap2 minipolish circlator seqkit; do
   command -v "$tool" || exit 1
 done
 ```
@@ -93,6 +98,9 @@ Paths and filenames are controlled by the TOML configuration:
 | --- | --- | --- | --- |
 | `trim` | Raw FASTQ files | Porechop | One `*.trimmed.fastq.gz` per input file |
 | `assemble` | Trimmed FASTQ files | Flye | `assembly_fasta` |
+| `autocycler_assemble` preparation | Trimmed FASTQ files | `gzip`/`cat` | `combined_trimmed_fastq` |
+| `autocycler_assemble` | Combined trimmed FASTQ | Autocycler | `autocycler_consensus_fasta` |
+| `medaka_polish` | Combined trimmed FASTQ plus Autocycler assembly | Medaka | `medaka_consensus_fasta` |
 | `circularize` preparation | Trimmed FASTQ files | `seqkit fq2fa` | `combined_trimmed_reads` |
 | `circularize` | Assembly plus converted reads | Circlator | `circularized_fasta` and `circlator_circularize_log` |
 
@@ -111,7 +119,9 @@ Commands:
 | Command | Behavior |
 | --- | --- |
 | `trim` | Trim every discovered raw FASTQ file for one barcode. |
-| `assemble` | Assemble all discovered trimmed reads for one barcode. |
+| `assemble` | Assemble all discovered trimmed reads for one barcode with Flye. |
+| `autocycler_assemble` | Combine trimmed reads and run the configured Autocycler workflow. |
+| `medaka_polish` | Polish the Autocycler consensus with Medaka and all combined trimmed reads. |
 | `circularize` | Convert trimmed reads and circularize an existing assembly. |
 | `run` | Execute the configured pipeline steps in order. |
 
@@ -121,12 +131,15 @@ Use the positional `help` command to print built-in usage.
 ./build/bacpipe help
 ./build/bacpipe trim barcode05 --config bacpipe.toml --dry-run
 ./build/bacpipe assemble barcode05 --config bacpipe.toml
+./build/bacpipe autocycler_assemble barcode05 --config bacpipe.toml
+./build/bacpipe medaka_polish barcode05 --config bacpipe.toml
 ./build/bacpipe circularize barcode05 --config bacpipe.toml
 ./build/bacpipe run barcode05 --config bacpipe.toml
 ```
 
 Supplying a configuration is strongly recommended because it selects the project
-paths and tool arguments, including the Flye read mode used by this project.
+paths and tool arguments. The checked-in `run` pipeline uses
+`trim -> autocycler_assemble -> medaka_polish`; direct `assemble` still uses Flye.
 
 ### Runtime behavior
 
@@ -140,8 +153,8 @@ paths and tool arguments, including the Flye read mode used by this project.
 - `--dry-run` prints commands without executing them, but still discovers inputs,
   validates required directories and intermediate files, and honors
   `skip_existing`. A full dry run on a new barcode cannot synthesize the trimmed
-  reads and assembly required by later stages; validate new data one stage at a
-  time.
+  reads, Autocycler assembly, or Medaka inputs required by later stages; validate
+  new data one stage at a time.
 
 ## Configuration
 
@@ -160,6 +173,8 @@ Active configuration sections are:
 | `[tools.porechop]` | `executable`, `extra_args` | Porechop command customization. |
 | `[tools.flye]` | `executable`, `extra_args` | Flye command customization. |
 | `[tools.circlator]` | `executable`, `extra_args` | Circlator command customization. |
+| `[autocycler]` | `executable`, `genome_size`, `read_type`, `subsample_count`, `assemblers`, per-stage `*_extra_args` | Autocycler workflow customization. |
+| `[medaka]` | `executable`, `extra_args` | Medaka polishing customization. |
 
 Single-stage CLI commands run their requested stage directly; `[pipeline].steps`
 only controls `run`. The top-level `version` value is currently informational and
@@ -173,7 +188,7 @@ For example:
 
 ```toml
 [pipeline]
-steps = ["trim", "assemble", "circularize"]
+steps = ["trim", "autocycler_assemble", "medaka_polish"]
 
 [project]
 root = "/projects/ladner_lab/bac_genomics/fastq_pass"
@@ -186,13 +201,31 @@ stop_on_error = true
 [paths]
 raw_reads = "{project_root}/{barcode}"
 trimmed_reads = "{project_root}/trimmed/{barcode}_porechop"
+combined_trimmed_fastq = "{project_root}/autocycler/{barcode}/reads/{barcode}.trimmed.combined.fastq.gz"
+autocycler_dir = "{project_root}/autocycler/{barcode}/autocycler_out"
+autocycler_consensus_fasta = "{project_root}/autocycler/{barcode}/autocycler_out/consensus_assembly.fasta"
+medaka_dir = "{project_root}/autocycler/{barcode}/medaka_consensus"
+medaka_consensus_fasta = "{project_root}/autocycler/{barcode}/medaka_consensus/consensus.fasta"
 
 [tools.flye]
 executable = "flye"
 extra_args = ["--nano-hq"]
+
+[autocycler]
+executable = "autocycler"
+genome_size = "auto"
+read_type = "ont_r10"
+subsample_count = 4
+assemblers = ["flye", "raven", "miniasm"]
+helper_extra_args = ["--min_depth_rel", "0.1"]
+
+[medaka]
+executable = "medaka_consensus"
+extra_args = ["--bacteria"]
 ```
 
-The complete example contains every path required by assembly and circularization.
+The complete example contains every path required by Flye, Autocycler, Medaka, and
+optional circularization.
 
 ## Slurm array execution
 
@@ -254,9 +287,10 @@ The table above reflects the variables currently assigned by the script.
 
 ## Troubleshooting
 
-- **A tool is missing:** activate `bacpipe` and check all four executables with the
-  verification loop in the quick start. The wrapper currently prints checks for
-  Porechop, Flye, and Circlator but not SeqKit.
+- **A tool is missing:** activate `bacpipe` and check the executable verification
+  loop in the quick start. The wrapper prints checks for Porechop, Flye,
+  Autocycler, Medaka, the default Autocycler helper assembler tools, Circlator,
+  and SeqKit.
 - **An input directory or FASTQ file is not found:** confirm the selected barcode,
   `[project].root`, and `[paths]` templates. Files in nested subdirectories are not
   discovered.
@@ -264,7 +298,8 @@ The table above reflects the variables currently assigned by the script.
   `skip_existing` is enabled. Review those files before intentionally rerunning the
   underlying tool. Ensure if `skip_existing` is set to `true`, you remove old directories
   before running the step again.
-- **A full dry run fails on new data:** run `trim`, `assemble`, and `circularize` dry
-  runs separately as their prerequisites become available.
+- **A full dry run fails on new data:** run `trim`, `autocycler_assemble`, and
+  `medaka_polish` dry runs separately as their prerequisites become available.
+  Use `assemble` only when validating the Flye-only path.
 - **A barcode is rejected by the wrapper:** explicit selections must use the
   `barcodeNN` form and refer to directories directly beneath `BARCODE_ROOT`.

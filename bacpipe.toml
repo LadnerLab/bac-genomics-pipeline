@@ -1,7 +1,7 @@
 version = 1
 
 [pipeline]
-steps = ["trim", "assemble", "circularize"]
+steps = ["trim", "autocycler_assemble", "medaka_polish"]
 
 [project]
 root = "."
@@ -15,6 +15,13 @@ raw_reads = "/projects/ladner_lab/bac_genomics/fastq_pass/{barcode}"
 trimmed_reads = "/projects/ladner_lab/bac_genomics/fastq_pass/trimmed/{barcode}_porechop"
 assembly_dir = "/projects/ladner_lab/bac_genomics/fastq_pass/assembly/{barcode}_flye"
 assembly_fasta = "/projects/ladner_lab/bac_genomics/fastq_pass/assembly/{barcode}_flye/assembly.fasta"
+combined_trimmed_fastq = "/projects/ladner_lab/bac_genomics/fastq_pass/autocycler/{barcode}/reads/{barcode}.trimmed.combined.fastq.gz"
+autocycler_dir = "/projects/ladner_lab/bac_genomics/fastq_pass/autocycler/{barcode}/autocycler_out"
+autocycler_subsampled_reads_dir = "/projects/ladner_lab/bac_genomics/fastq_pass/autocycler/{barcode}/subsampled_reads"
+autocycler_input_assemblies_dir = "/projects/ladner_lab/bac_genomics/fastq_pass/autocycler/{barcode}/assemblies"
+autocycler_consensus_fasta = "/projects/ladner_lab/bac_genomics/fastq_pass/autocycler/{barcode}/autocycler_out/consensus_assembly.fasta"
+medaka_dir = "/projects/ladner_lab/bac_genomics/fastq_pass/autocycler/{barcode}/medaka_consensus"
+medaka_consensus_fasta = "/projects/ladner_lab/bac_genomics/fastq_pass/autocycler/{barcode}/medaka_consensus/consensus.fasta"
 circularization_dir = "/projects/ladner_lab/bac_genomics/fastq_pass/circularized/{barcode}_circlator"
 circularization_reads_dir = "/projects/ladner_lab/bac_genomics/fastq_pass/circularized/{barcode}_circlator/00_reads"
 combined_trimmed_reads = "/projects/ladner_lab/bac_genomics/fastq_pass/circularized/{barcode}_circlator/00_reads/{barcode}.trimmed.combined.fastq.gz"
@@ -33,3 +40,21 @@ extra_args = ["--nano-hq"]
 [tools.circlator]
 executable = "circlator"
 extra_args = ["--verbose"]
+
+[autocycler]
+executable = "autocycler"
+genome_size = "auto"
+read_type = "ont_r10"
+subsample_count = 4
+assemblers = ["flye", "raven", "miniasm"]
+subsample_extra_args = []
+helper_extra_args = ["--min_depth_rel", "0.1"]
+compress_extra_args = []
+cluster_extra_args = []
+trim_extra_args = []
+resolve_extra_args = []
+combine_extra_args = []
+
+[medaka]
+executable = "medaka_consensus"
+extra_args = ["--bacteria"]
