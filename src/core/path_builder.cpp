@@ -18,6 +18,35 @@ std::filesystem::path PathBuilder::assembly_fasta(const PipelineConfig &config) 
     return bacpipe::expand_config_path(config.paths.assembly_fasta, config);
 }
 
+std::filesystem::path PathBuilder::combined_trimmed_fastq(const PipelineConfig &config) {
+    return bacpipe::expand_config_path(config.paths.combined_trimmed_fastq, config);
+}
+
+std::filesystem::path PathBuilder::autocycler_dir(const PipelineConfig &config) {
+    return bacpipe::expand_config_path(config.paths.autocycler_dir, config);
+}
+
+std::filesystem::path PathBuilder::autocycler_subsampled_reads_dir(const PipelineConfig &config) {
+    return bacpipe::expand_config_path(config.paths.autocycler_subsampled_reads_dir, config);
+}
+
+std::filesystem::path PathBuilder::autocycler_input_assemblies_dir(
+    const PipelineConfig &config) {
+    return bacpipe::expand_config_path(config.paths.autocycler_input_assemblies_dir, config);
+}
+
+std::filesystem::path PathBuilder::autocycler_consensus_fasta(const PipelineConfig &config) {
+    return bacpipe::expand_config_path(config.paths.autocycler_consensus_fasta, config);
+}
+
+std::filesystem::path PathBuilder::medaka_dir(const PipelineConfig &config) {
+    return bacpipe::expand_config_path(config.paths.medaka_dir, config);
+}
+
+std::filesystem::path PathBuilder::medaka_consensus_fasta(const PipelineConfig &config) {
+    return bacpipe::expand_config_path(config.paths.medaka_consensus_fasta, config);
+}
+
 std::filesystem::path PathBuilder::circularization_dir(const PipelineConfig &config) {
     return bacpipe::expand_config_path(config.paths.circularization_dir, config);
 }

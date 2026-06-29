@@ -82,8 +82,13 @@ cmake --build build --parallel
 ## Quick Test
 
 ```bash
-./build/bacpipe run barcode05 --dry-run
+./build/bacpipe help
+./build/bacpipe trim barcode05 --config bacpipe.toml --dry-run
+./build/bacpipe run barcode05 --config bacpipe.toml --dry-run
 ```
+
+Dry-run prints commands and planned directory creation, but it does not create
+directories or files.
 
 ## Notes
 

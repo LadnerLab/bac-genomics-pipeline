@@ -191,9 +191,9 @@ source $(conda info --base)/etc/profile.d/conda.sh
 conda activate ${CONDA_ENV}
 
 echo "[bacpipe] active_conda_env=${CONDA_DEFAULT_ENV:-unset}"
-echo "[bacpipe] porechop=$(command -v porechop || echo missing)"
-echo "[bacpipe] flye=$(command -v flye || echo missing)"
-echo "[bacpipe] circlator=$(command -v circlator || echo missing)"
+for tool in porechop flye autocycler medaka_consensus raven miniasm minimap2 minipolish circlator seqkit; do
+  echo "[bacpipe] ${tool}=$(command -v "${tool}" || echo missing)"
+done
 
 BACPIPE_ARGS=(
   "${COMMAND}"

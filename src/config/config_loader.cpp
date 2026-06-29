@@ -43,6 +43,20 @@ void read_threads(const toml::table &table, std::uint32_t &target) {
     target = static_cast<std::uint32_t>(*value);
 }
 
+void read_uint32(const toml::table &table, std::string_view key, std::uint32_t &target) {
+    const auto value = table[key].value<std::int64_t>();
+
+    if (!value)
+        return;
+    if (*value <= 0)
+        return;
+    if (*value > std::numeric_limits<std::uint32_t>::max()) {
+        throw std::runtime_error{std::string{key} + " is too large"};
+    }
+
+    target = static_cast<std::uint32_t>(*value);
+}
+
 std::optional<std::vector<std::string>> read_string_array(const toml::table &table,
                                                           std::string_view key) {
     const toml::array *array = table[key].as_array();
@@ -71,6 +85,46 @@ void read_tool_config(const toml::table &table, bacpipe::ToolConfig &tool) {
 
     if (auto extra_args = read_string_array(table, "extra_args")) {
         tool.extra_args = *extra_args;
+    }
+}
+
+void read_autocycler_config(const toml::table &table, bacpipe::AutocyclerConfig &autocycler) {
+    read_string(table, "executable", autocycler.executable);
+    read_string(table, "genome_size", autocycler.genome_size);
+    read_string(table, "read_type", autocycler.read_type);
+    read_uint32(table, "subsample_count", autocycler.subsample_count);
+
+    if (auto assemblers = read_string_array(table, "assemblers")) {
+        autocycler.assemblers = *assemblers;
+    }
+    if (auto extra_args = read_string_array(table, "subsample_extra_args")) {
+        autocycler.subsample_extra_args = *extra_args;
+    }
+    if (auto extra_args = read_string_array(table, "helper_extra_args")) {
+        autocycler.helper_extra_args = *extra_args;
+    }
+    if (auto extra_args = read_string_array(table, "compress_extra_args")) {
+        autocycler.compress_extra_args = *extra_args;
+    }
+    if (auto extra_args = read_string_array(table, "cluster_extra_args")) {
+        autocycler.cluster_extra_args = *extra_args;
+    }
+    if (auto extra_args = read_string_array(table, "trim_extra_args")) {
+        autocycler.trim_extra_args = *extra_args;
+    }
+    if (auto extra_args = read_string_array(table, "resolve_extra_args")) {
+        autocycler.resolve_extra_args = *extra_args;
+    }
+    if (auto extra_args = read_string_array(table, "combine_extra_args")) {
+        autocycler.combine_extra_args = *extra_args;
+    }
+}
+
+void read_medaka_config(const toml::table &table, bacpipe::MedakaConfig &medaka) {
+    read_string(table, "executable", medaka.executable);
+
+    if (auto extra_args = read_string_array(table, "extra_args")) {
+        medaka.extra_args = *extra_args;
     }
 }
 
@@ -115,6 +169,20 @@ PipelineConfig ConfigLoader::load(const std::filesystem::path &config_file, Pipe
         read_string(*paths, "assembly_dir", config.paths.assembly_dir);
         read_string(*paths, "assembly_fasta", config.paths.assembly_fasta);
 
+        read_string(*paths, "combined_trimmed_fastq", config.paths.combined_trimmed_fastq);
+        read_string(*paths, "autocycler_dir", config.paths.autocycler_dir);
+        read_string(*paths,
+                    "autocycler_subsampled_reads_dir",
+                    config.paths.autocycler_subsampled_reads_dir);
+        read_string(*paths,
+                    "autocycler_input_assemblies_dir",
+                    config.paths.autocycler_input_assemblies_dir);
+        read_string(*paths,
+                    "autocycler_consensus_fasta",
+                    config.paths.autocycler_consensus_fasta);
+        read_string(*paths, "medaka_dir", config.paths.medaka_dir);
+        read_string(*paths, "medaka_consensus_fasta", config.paths.medaka_consensus_fasta);
+
         read_string(*paths, "circularization_dir", config.paths.circularization_dir);
         read_string(*paths, "circularization_reads_dir", config.paths.circularization_reads_dir);
         read_string(*paths, "combined_trimmed_reads", config.paths.combined_trimmed_reads);
@@ -136,6 +204,14 @@ PipelineConfig ConfigLoader::load(const std::filesystem::path &config_file, Pipe
         if (const auto *circlator = (*tools)["circlator"].as_table()) {
             read_tool_config(*circlator, config.circlator);
         }
+    }
+
+    if (const auto *autocycler = root["autocycler"].as_table()) {
+        read_autocycler_config(*autocycler, config.autocycler);
+    }
+
+    if (const auto *medaka = root["medaka"].as_table()) {
+        read_medaka_config(*medaka, config.medaka);
     }
 
     return config;

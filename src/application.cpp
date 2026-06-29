@@ -8,7 +8,9 @@
 #include "bacpipe/pipeline/pipeline_step.hpp"
 
 #include "bacpipe/pipeline/assemble.hpp"
+#include "bacpipe/pipeline/autocycler.hpp"
 #include "bacpipe/pipeline/circularize.hpp"
+#include "bacpipe/pipeline/medaka.hpp"
 #include "bacpipe/pipeline/trim.hpp"
 
 #include <exception>
@@ -39,6 +41,14 @@ std::vector<bacpipe::RunnerResult> run_single_step(const bacpipe::PipelineConfig
         return run_steps(runner, bacpipe::build_assemble_steps(config));
     }
 
+    if (step_name == "autocycler_assemble") {
+        return run_steps(runner, bacpipe::build_autocycler_steps(config));
+    }
+
+    if (step_name == "medaka_polish") {
+        return run_steps(runner, bacpipe::build_medaka_steps(config));
+    }
+
     if (step_name == "circularize") {
         return run_steps(runner, bacpipe::build_circularize_steps(config));
     }
@@ -57,6 +67,7 @@ std::vector<bacpipe::RunnerResult> run_requested_pipeline(const bacpipe::Pipelin
 
     // step-by-step commands
     if (config.command == "trim" || config.command == "assemble" ||
+        config.command == "autocycler_assemble" || config.command == "medaka_polish" ||
         config.command == "circularize") {
         append_results(run_single_step(config, runner, config.command));
         return results;
@@ -95,7 +106,6 @@ Application::Application(std::span<char *> args) : args_{args} {}
 
 int Application::run() const {
     try {
-        const bool dry_run = has_option(args_, "--dry-run");
         const PipelineConfig config = parse_args();
 
         if (config.command == "help") {
@@ -116,9 +126,9 @@ int Application::run() const {
         }
 
         print_run_summary(config);
-        Logger::info(std::string{"Dry run: "} + (dry_run ? "true" : "false"));
+        Logger::info(std::string{"Dry run: "} + (config.dry_run ? "true" : "false"));
 
-        const Runner runner{RunnerOptions{.dry_run = dry_run,
+        const Runner runner{RunnerOptions{.dry_run = config.dry_run,
                                           .skip_existing = config.skip_existing,
                                           .stop_on_error = config.stop_on_error}};
 
@@ -140,6 +150,7 @@ int Application::run() const {
 PipelineConfig Application::parse_args() const {
     PipelineConfig config;
     config.threads = ThreadResolver::resolve_default();
+    config.dry_run = has_option(args_, "--dry-run");
 
     std::optional<std::filesystem::path> config_file{};
     std::vector<std::string_view> positionals{};
@@ -190,8 +201,8 @@ PipelineConfig Application::parse_args() const {
 }
 
 bool Application::is_known_command(std::string_view command) {
-    return command == "trim" || command == "assemble" || command == "circularize" ||
-           command == "run";
+    return command == "trim" || command == "assemble" || command == "autocycler_assemble" ||
+           command == "medaka_polish" || command == "circularize" || command == "run";
 }
 
 void Application::print_help() {
@@ -199,6 +210,8 @@ void Application::print_help() {
               << "Usage:\n"
               << "  bacpipe trim <barcode> [--config <path>] [--dry-run]\n"
               << "  bacpipe assemble <barcode> [--config <path>] [--dry-run]\n"
+              << "  bacpipe autocycler_assemble <barcode> [--config <path>] [--dry-run]\n"
+              << "  bacpipe medaka_polish <barcode> [--config <path>] [--dry-run]\n"
               << "  bacpipe circularize <barcode> [--config <path>] [--dry-run]\n"
               << "  bacpipe run <barcode> [--config <path>] [--dry-run]\n\n"
               << "Options:\n"
