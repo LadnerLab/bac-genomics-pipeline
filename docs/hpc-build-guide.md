@@ -84,10 +84,11 @@ cmake --build build --parallel
 ```bash
 ./build/bacpipe help
 ./build/bacpipe trim barcode05 --config bacpipe.toml --dry-run
+./build/bacpipe run barcode05 --config bacpipe.toml --dry-run
 ```
 
-Run `autocycler_assemble`, `medaka_polish`, or the full configured `run` dry run
-only after the prerequisite outputs for those stages exist.
+Dry-run prints commands and planned directory creation, but it does not create
+directories or files.
 
 ## Notes
 

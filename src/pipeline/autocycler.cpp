@@ -15,14 +15,17 @@
 
 namespace {
 
-std::string mkdir_parent_command(const std::filesystem::path &path) {
-    const std::filesystem::path parent = path.parent_path();
-
-    if (parent.empty()) {
+std::string mkdir_command(const std::filesystem::path &directory) {
+    if (directory.empty()) {
         return "true";
     }
 
-    return "mkdir -p " + bacpipe::shell_quote(parent.string());
+    return "mkdir -p " + bacpipe::shell_quote(directory.string());
+}
+
+std::string mkdir_parent_command(const std::filesystem::path &path) {
+    const std::filesystem::path parent = path.parent_path();
+    return mkdir_command(parent);
 }
 
 std::string sample_id(const std::uint32_t index) {
@@ -123,7 +126,7 @@ std::string build_subsample_command(const std::filesystem::path &combined_reads,
                                     const std::filesystem::path &genome_size_path) {
     std::ostringstream command{};
 
-    command << mkdir_parent_command(subsampled_reads_dir) << " && "
+    command << mkdir_command(subsampled_reads_dir) << " && "
             << bacpipe::shell_quote(tool.executable) << " subsample"
             << " --reads " << bacpipe::shell_quote(combined_reads.string())
             << " --out_dir " << bacpipe::shell_quote(subsampled_reads_dir.string())
@@ -142,7 +145,7 @@ std::string build_helper_command(const std::filesystem::path &subsampled_read,
                                  const std::uint32_t threads) {
     std::ostringstream command{};
 
-    command << mkdir_parent_command(out_prefix) << " && "
+    command << mkdir_command(out_prefix.parent_path()) << " && "
             << bacpipe::shell_quote(tool.executable) << " helper "
             << bacpipe::shell_quote(assembler)
             << " --reads " << bacpipe::shell_quote(subsampled_read.string())

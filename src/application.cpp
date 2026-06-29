@@ -106,7 +106,6 @@ Application::Application(std::span<char *> args) : args_{args} {}
 
 int Application::run() const {
     try {
-        const bool dry_run = has_option(args_, "--dry-run");
         const PipelineConfig config = parse_args();
 
         if (config.command == "help") {
@@ -127,9 +126,9 @@ int Application::run() const {
         }
 
         print_run_summary(config);
-        Logger::info(std::string{"Dry run: "} + (dry_run ? "true" : "false"));
+        Logger::info(std::string{"Dry run: "} + (config.dry_run ? "true" : "false"));
 
-        const Runner runner{RunnerOptions{.dry_run = dry_run,
+        const Runner runner{RunnerOptions{.dry_run = config.dry_run,
                                           .skip_existing = config.skip_existing,
                                           .stop_on_error = config.stop_on_error}};
 
@@ -151,6 +150,7 @@ int Application::run() const {
 PipelineConfig Application::parse_args() const {
     PipelineConfig config;
     config.threads = ThreadResolver::resolve_default();
+    config.dry_run = has_option(args_, "--dry-run");
 
     std::optional<std::filesystem::path> config_file{};
     std::vector<std::string_view> positionals{};

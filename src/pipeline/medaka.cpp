@@ -65,14 +65,16 @@ std::vector<PipelineStep> build_medaka_steps(const PipelineConfig &config) {
     const std::filesystem::path medaka_dir = PathBuilder::medaka_dir(config);
     const std::filesystem::path consensus_fasta = PathBuilder::medaka_consensus_fasta(config);
 
-    if (!std::filesystem::exists(combined_reads)) {
-        throw std::runtime_error{"Combined trimmed FASTQ does not exist: " +
-                                 combined_reads.string()};
-    }
+    if (!config.dry_run) {
+        if (!std::filesystem::exists(combined_reads)) {
+            throw std::runtime_error{"Combined trimmed FASTQ does not exist: " +
+                                     combined_reads.string()};
+        }
 
-    if (!std::filesystem::exists(draft_assembly)) {
-        throw std::runtime_error{"Autocycler consensus FASTA does not exist: " +
-                                 draft_assembly.string()};
+        if (!std::filesystem::exists(draft_assembly)) {
+            throw std::runtime_error{"Autocycler consensus FASTA does not exist: " +
+                                     draft_assembly.string()};
+        }
     }
 
     return {PipelineStep{.name = "Polish Autocycler assembly with Medaka",

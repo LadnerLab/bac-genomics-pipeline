@@ -150,11 +150,11 @@ paths and tool arguments. The checked-in `run` pipeline uses
 - `runtime.threads`, when set to a positive integer, takes precedence over
   `SLURM_CPUS_PER_TASK`. Without either value, hardware concurrency is used, falling
   back to one thread.
-- `--dry-run` prints commands without executing them, but still discovers inputs,
-  validates required directories and intermediate files, and honors
-  `skip_existing`. A full dry run on a new barcode cannot synthesize the trimmed
-  reads, Autocycler assembly, or Medaka inputs required by later stages; validate
-  new data one stage at a time.
+- `--dry-run` prints commands without executing them, but still discovers inputs
+  and honors `skip_existing`. Printed commands include the `mkdir -p` calls that
+  would create output directories during a real run, but dry-run itself does not
+  create directories or files. In a full dry run, Medaka input paths may refer to
+  Autocycler outputs that are planned earlier in the same dry run.
 
 ## Configuration
 
@@ -298,8 +298,11 @@ The table above reflects the variables currently assigned by the script.
   `skip_existing` is enabled. Review those files before intentionally rerunning the
   underlying tool. Ensure if `skip_existing` is set to `true`, you remove old directories
   before running the step again.
-- **A full dry run fails on new data:** run `trim`, `autocycler_assemble`, and
-  `medaka_polish` dry runs separately as their prerequisites become available.
-  Use `assemble` only when validating the Flye-only path.
+- **A full dry run fails on new data:** confirm the raw barcode directory exists
+  and contains FASTQ files. Because dry-run does not execute trimming, the
+  Autocycler stage still needs discoverable trimmed FASTQ files. When those
+  trimmed reads exist, dry-run can print downstream Medaka commands even if the
+  Autocycler outputs are only planned earlier in the same dry run. Use `assemble`
+  only when validating the Flye-only path.
 - **A barcode is rejected by the wrapper:** explicit selections must use the
   `barcodeNN` form and refer to directories directly beneath `BARCODE_ROOT`.

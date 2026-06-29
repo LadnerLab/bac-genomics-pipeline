@@ -72,6 +72,7 @@ struct PipelineConfig {
 
     bool skip_existing{true};
     bool stop_on_error{true};
+    bool dry_run{false};
 
     std::vector<std::string> pipeline_steps{"trim", "assemble", "circularize"};
     PipelinePathConfig paths{};
