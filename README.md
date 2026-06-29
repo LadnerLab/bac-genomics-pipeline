@@ -102,7 +102,7 @@ Paths and filenames are controlled by the TOML configuration:
 | `autocycler_assemble` | Combined trimmed FASTQ | Autocycler | `autocycler_consensus_fasta` |
 | `medaka_polish` | Combined trimmed FASTQ plus Autocycler assembly | Medaka | `medaka_consensus_fasta` |
 | `circularize` preparation | Trimmed FASTQ files | `seqkit fq2fa` | `combined_trimmed_reads` |
-| `circularize` | Assembly plus converted reads | Circlator | `circularized_fasta` and `circlator_circularize_log` |
+| `circularize` | Assembly plus converted reads, and dnaA reference FASTA | Circlator | `circularized_fasta` and `circlator_circularize_log` |
 
 `seqkit fq2fa` writes FASTA content. The current example configuration gives
 `combined_trimmed_reads` a `.fastq.gz` suffix despite that content format; downstream
