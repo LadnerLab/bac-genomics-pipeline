@@ -39,7 +39,7 @@ extra_args = ["--nano-hq"]
 
 [tools.circlator]
 executable = "circlator"
-extra_args = ["--verbose"]
+extra_args = ["--verbose", "--genes_fa", "/projects/ladner_lab/bac_genomics/bac-genomics-pipeline/mergibacter_dnaA_ref.fasta"]
 
 [autocycler]
 executable = "autocycler"
