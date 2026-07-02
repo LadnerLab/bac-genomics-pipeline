@@ -48,8 +48,9 @@ void read_uint32(const toml::table &table, std::string_view key, std::uint32_t &
 
     if (!value)
         return;
-    if (*value <= 0)
-        return;
+    if (*value <= 0) {
+        throw std::runtime_error{std::string{key} + " must be greater than zero"};
+    }
     if (*value > std::numeric_limits<std::uint32_t>::max()) {
         throw std::runtime_error{std::string{key} + " is too large"};
     }
@@ -82,49 +83,36 @@ std::optional<std::vector<std::string>> read_string_array(const toml::table &tab
 
 void read_tool_config(const toml::table &table, bacpipe::ToolConfig &tool) {
     read_string(table, "executable", tool.executable);
+    read_string(table, "genome_size", tool.genome_size);
+    read_string(table, "read_type", tool.read_type);
+    read_uint32(table, "subsample_count", tool.subsample_count);
 
     if (auto extra_args = read_string_array(table, "extra_args")) {
         tool.extra_args = *extra_args;
     }
-}
-
-void read_autocycler_config(const toml::table &table, bacpipe::AutocyclerConfig &autocycler) {
-    read_string(table, "executable", autocycler.executable);
-    read_string(table, "genome_size", autocycler.genome_size);
-    read_string(table, "read_type", autocycler.read_type);
-    read_uint32(table, "subsample_count", autocycler.subsample_count);
-
     if (auto assemblers = read_string_array(table, "assemblers")) {
-        autocycler.assemblers = *assemblers;
+        tool.assemblers = *assemblers;
     }
     if (auto extra_args = read_string_array(table, "subsample_extra_args")) {
-        autocycler.subsample_extra_args = *extra_args;
+        tool.subsample_extra_args = *extra_args;
     }
     if (auto extra_args = read_string_array(table, "helper_extra_args")) {
-        autocycler.helper_extra_args = *extra_args;
+        tool.helper_extra_args = *extra_args;
     }
     if (auto extra_args = read_string_array(table, "compress_extra_args")) {
-        autocycler.compress_extra_args = *extra_args;
+        tool.compress_extra_args = *extra_args;
     }
     if (auto extra_args = read_string_array(table, "cluster_extra_args")) {
-        autocycler.cluster_extra_args = *extra_args;
+        tool.cluster_extra_args = *extra_args;
     }
     if (auto extra_args = read_string_array(table, "trim_extra_args")) {
-        autocycler.trim_extra_args = *extra_args;
+        tool.trim_extra_args = *extra_args;
     }
     if (auto extra_args = read_string_array(table, "resolve_extra_args")) {
-        autocycler.resolve_extra_args = *extra_args;
+        tool.resolve_extra_args = *extra_args;
     }
     if (auto extra_args = read_string_array(table, "combine_extra_args")) {
-        autocycler.combine_extra_args = *extra_args;
-    }
-}
-
-void read_medaka_config(const toml::table &table, bacpipe::MedakaConfig &medaka) {
-    read_string(table, "executable", medaka.executable);
-
-    if (auto extra_args = read_string_array(table, "extra_args")) {
-        medaka.extra_args = *extra_args;
+        tool.combine_extra_args = *extra_args;
     }
 }
 
@@ -197,21 +185,17 @@ PipelineConfig ConfigLoader::load(const std::filesystem::path &config_file, Pipe
             read_tool_config(*porechop, config.porechop);
         }
 
-        if (const auto *flye = (*tools)["flye"].as_table()) {
-            read_tool_config(*flye, config.flye);
+        if (const auto *autocycler = (*tools)["autocycler"].as_table()) {
+            read_tool_config(*autocycler, config.autocycler);
+        }
+
+        if (const auto *medaka = (*tools)["medaka"].as_table()) {
+            read_tool_config(*medaka, config.medaka);
         }
 
         if (const auto *circlator = (*tools)["circlator"].as_table()) {
             read_tool_config(*circlator, config.circlator);
         }
-    }
-
-    if (const auto *autocycler = root["autocycler"].as_table()) {
-        read_autocycler_config(*autocycler, config.autocycler);
-    }
-
-    if (const auto *medaka = root["medaka"].as_table()) {
-        read_medaka_config(*medaka, config.medaka);
     }
 
     return config;

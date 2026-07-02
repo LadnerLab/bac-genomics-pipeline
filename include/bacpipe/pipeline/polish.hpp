@@ -7,6 +7,6 @@
 
 namespace bacpipe {
 
-[[nodiscard]] std::vector<PipelineStep> build_medaka_steps(const PipelineConfig &config);
+[[nodiscard]] std::vector<PipelineStep> build_polish_steps(const PipelineConfig &config);
 
 } // namespace bacpipe
