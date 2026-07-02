@@ -27,9 +27,8 @@ add_executable(bacpipe
     src/pipeline/pipeline_step.cpp
     src/pipeline/trim.cpp
     src/pipeline/assemble.cpp
-    src/pipeline/autocycler.cpp
     src/pipeline/circularize.cpp
-    src/pipeline/medaka.cpp
+    src/pipeline/polish.cpp
 )
 
 target_include_directories(bacpipe PRIVATE ${PROJECT_SOURCE_DIR}/include)

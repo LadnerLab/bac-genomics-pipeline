@@ -9,16 +9,13 @@
 namespace bacpipe {
 
 struct ToolConfig {
-    std::string executable;
-    std::vector<std::string> extra_args;
-};
+    std::string executable{};
+    std::vector<std::string> extra_args{};
 
-struct AutocyclerConfig {
-    std::string executable{"autocycler"};
-    std::string genome_size{"auto"};
-    std::string read_type{"ont_r10"};
-    std::uint32_t subsample_count{4};
-    std::vector<std::string> assemblers{"flye", "raven", "miniasm"};
+    std::string genome_size{};
+    std::string read_type{};
+    std::uint32_t subsample_count{0};
+    std::vector<std::string> assemblers{};
     std::vector<std::string> subsample_extra_args{};
     std::vector<std::string> helper_extra_args{};
     std::vector<std::string> compress_extra_args{};
@@ -26,11 +23,6 @@ struct AutocyclerConfig {
     std::vector<std::string> trim_extra_args{};
     std::vector<std::string> resolve_extra_args{};
     std::vector<std::string> combine_extra_args{};
-};
-
-struct MedakaConfig {
-    std::string executable{"medaka_consensus"};
-    std::vector<std::string> extra_args{"--bacteria"};
 };
 
 struct PipelinePathConfig {
@@ -74,14 +66,25 @@ struct PipelineConfig {
     bool stop_on_error{true};
     bool dry_run{false};
 
-    std::vector<std::string> pipeline_steps{"trim", "assemble", "circularize"};
+    std::vector<std::string> pipeline_steps{"trim", "assemble", "polish"};
     PipelinePathConfig paths{};
 
     ToolConfig porechop{.executable = "porechop", .extra_args = {}};
-    ToolConfig flye{.executable = "flye", .extra_args = {}};
+    ToolConfig autocycler{.executable = "autocycler",
+                          .extra_args = {},
+                          .genome_size = "auto",
+                          .read_type = "ont_r10",
+                          .subsample_count = 4,
+                          .assemblers = {"flye", "raven", "miniasm"},
+                          .subsample_extra_args = {},
+                          .helper_extra_args = {"--min_depth_rel", "0.1"},
+                          .compress_extra_args = {},
+                          .cluster_extra_args = {},
+                          .trim_extra_args = {},
+                          .resolve_extra_args = {},
+                          .combine_extra_args = {}};
+    ToolConfig medaka{.executable = "medaka_consensus", .extra_args = {"--bacteria"}};
     ToolConfig circlator{.executable = "circlator", .extra_args = {}};
-    AutocyclerConfig autocycler{};
-    MedakaConfig medaka{};
 };
 
 } // namespace bacpipe

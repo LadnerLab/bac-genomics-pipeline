@@ -1,7 +1,7 @@
 version = 1
 
 [pipeline]
-steps = ["trim", "autocycler_assemble", "medaka_polish"]
+steps = ["trim", "assemble", "polish"]
 
 [project]
 root = "."
@@ -33,15 +33,7 @@ circlator_circularize_log = "/projects/ladner_lab/bac_genomics/fastq_pass/circul
 executable = "porechop"
 extra_args = []
 
-[tools.flye]
-executable = "flye"
-extra_args = ["--nano-hq"]
-
-[tools.circlator]
-executable = "circlator"
-extra_args = ["--verbose", "--genes_fa", "/projects/ladner_lab/bac_genomics/bac-genomics-pipeline/mergibacter_dnaA_ref.fasta"]
-
-[autocycler]
+[tools.autocycler]
 executable = "autocycler"
 genome_size = "auto"
 read_type = "ont_r10"
@@ -55,6 +47,10 @@ trim_extra_args = []
 resolve_extra_args = []
 combine_extra_args = []
 
-[medaka]
+[tools.medaka]
 executable = "medaka_consensus"
 extra_args = ["--bacteria"]
+
+[tools.circlator]
+executable = "circlator"
+extra_args = ["--verbose", "--genes_fa", "/projects/ladner_lab/bac_genomics/bac-genomics-pipeline/mergibacter_dnaA_ref.fasta"]

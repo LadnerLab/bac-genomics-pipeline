@@ -8,7 +8,6 @@ stages:
 2. long-read consensus assembly with Autocycler; and
 3. Medaka polishing with the full, un-subsampled trimmed read set.
 
-The legacy Flye-only assembly command remains available as `bacpipe assemble`.
 Circlator remains available as an optional explicit command. Quality-control
 reporting is not implemented yet. Generated commands use POSIX shell features, so
 the supported execution environment is Linux. The primary deployment target is a
@@ -26,7 +25,7 @@ Slurm-based HPC cluster (i.e., Monsoon).
 
 ### Create the runtime environment
 
-The default configured pipeline invokes Porechop, Autocycler, the configured
+The default configured pipeline invokes Porechop, Autocycler, the default
 Autocycler helper assemblers, and Medaka at runtime. Create the environment on the
 Linux cluster with the `conda-forge` and `bioconda` channels in strict-priority
 mode:
@@ -97,10 +96,9 @@ Paths and filenames are controlled by the TOML configuration:
 | Stage | Input | Program | Expected output |
 | --- | --- | --- | --- |
 | `trim` | Raw FASTQ files | Porechop | One `*.trimmed.fastq.gz` per input file |
-| `assemble` | Trimmed FASTQ files | Flye | `assembly_fasta` |
-| `autocycler_assemble` preparation | Trimmed FASTQ files | `gzip`/`cat` | `combined_trimmed_fastq` |
-| `autocycler_assemble` | Combined trimmed FASTQ | Autocycler | `autocycler_consensus_fasta` |
-| `medaka_polish` | Combined trimmed FASTQ plus Autocycler assembly | Medaka | `medaka_consensus_fasta` |
+| `assemble` preparation | Trimmed FASTQ files | `gzip`/`cat` | `combined_trimmed_fastq` |
+| `assemble` | Combined trimmed FASTQ | Autocycler | `autocycler_consensus_fasta` |
+| `polish` | Combined trimmed FASTQ plus Autocycler assembly | Medaka | `medaka_consensus_fasta` |
 | `circularize` preparation | Trimmed FASTQ files | `seqkit fq2fa` | `combined_trimmed_reads` |
 | `circularize` | Assembly plus converted reads, and dnaA reference FASTA | Circlator | `circularized_fasta` and `circlator_circularize_log` |
 
@@ -119,9 +117,8 @@ Commands:
 | Command | Behavior |
 | --- | --- |
 | `trim` | Trim every discovered raw FASTQ file for one barcode. |
-| `assemble` | Assemble all discovered trimmed reads for one barcode with Flye. |
-| `autocycler_assemble` | Combine trimmed reads and run the configured Autocycler workflow. |
-| `medaka_polish` | Polish the Autocycler consensus with Medaka and all combined trimmed reads. |
+| `assemble` | Combine trimmed reads and run the Autocycler workflow. |
+| `polish` | Polish the Autocycler consensus with Medaka and all combined trimmed reads. |
 | `circularize` | Convert trimmed reads and circularize an existing assembly. |
 | `run` | Execute the configured pipeline steps in order. |
 
@@ -131,15 +128,14 @@ Use the positional `help` command to print built-in usage.
 ./build/bacpipe help
 ./build/bacpipe trim barcode05 --config bacpipe.toml --dry-run
 ./build/bacpipe assemble barcode05 --config bacpipe.toml
-./build/bacpipe autocycler_assemble barcode05 --config bacpipe.toml
-./build/bacpipe medaka_polish barcode05 --config bacpipe.toml
+./build/bacpipe polish barcode05 --config bacpipe.toml
 ./build/bacpipe circularize barcode05 --config bacpipe.toml
 ./build/bacpipe run barcode05 --config bacpipe.toml
 ```
 
 Supplying a configuration is strongly recommended because it selects the project
 paths and tool arguments. The checked-in `run` pipeline uses
-`trim -> autocycler_assemble -> medaka_polish`; direct `assemble` still uses Flye.
+`trim -> assemble -> polish`.
 
 ### Runtime behavior
 
@@ -171,10 +167,9 @@ Active configuration sections are:
 | `[runtime]` | `threads`, `skip_existing`, `stop_on_error` | Resource and runner behavior. |
 | `[paths]` | Input, intermediate, output, and log templates | Filesystem layout for each barcode. |
 | `[tools.porechop]` | `executable`, `extra_args` | Porechop command customization. |
-| `[tools.flye]` | `executable`, `extra_args` | Flye command customization. |
+| `[tools.autocycler]` | `executable`, `genome_size`, `read_type`, `subsample_count`, `assemblers`, per-stage `*_extra_args` | Autocycler workflow customization. |
+| `[tools.medaka]` | `executable`, `extra_args` | Medaka polishing customization. |
 | `[tools.circlator]` | `executable`, `extra_args` | Circlator command customization. |
-| `[autocycler]` | `executable`, `genome_size`, `read_type`, `subsample_count`, `assemblers`, per-stage `*_extra_args` | Autocycler workflow customization. |
-| `[medaka]` | `executable`, `extra_args` | Medaka polishing customization. |
 
 Single-stage CLI commands run their requested stage directly; `[pipeline].steps`
 only controls `run`. The top-level `version` value is currently informational and
@@ -188,7 +183,7 @@ For example:
 
 ```toml
 [pipeline]
-steps = ["trim", "autocycler_assemble", "medaka_polish"]
+steps = ["trim", "assemble", "polish"]
 
 [project]
 root = "/projects/ladner_lab/bac_genomics/fastq_pass"
@@ -207,24 +202,26 @@ autocycler_consensus_fasta = "{project_root}/autocycler/{barcode}/autocycler_out
 medaka_dir = "{project_root}/autocycler/{barcode}/medaka_consensus"
 medaka_consensus_fasta = "{project_root}/autocycler/{barcode}/medaka_consensus/consensus.fasta"
 
-[tools.flye]
-executable = "flye"
-extra_args = ["--nano-hq"]
-
-[autocycler]
+[tools.autocycler]
 executable = "autocycler"
 genome_size = "auto"
 read_type = "ont_r10"
 subsample_count = 4
 assemblers = ["flye", "raven", "miniasm"]
+subsample_extra_args = []
 helper_extra_args = ["--min_depth_rel", "0.1"]
+compress_extra_args = []
+cluster_extra_args = []
+trim_extra_args = []
+resolve_extra_args = []
+combine_extra_args = []
 
-[medaka]
+[tools.medaka]
 executable = "medaka_consensus"
 extra_args = ["--bacteria"]
 ```
 
-The complete example contains every path required by Flye, Autocycler, Medaka, and
+The complete example contains every path required by Autocycler, Medaka, and
 optional circularization.
 
 ## Slurm array execution
@@ -302,7 +299,6 @@ The table above reflects the variables currently assigned by the script.
   and contains FASTQ files. Because dry-run does not execute trimming, the
   Autocycler stage still needs discoverable trimmed FASTQ files. When those
   trimmed reads exist, dry-run can print downstream Medaka commands even if the
-  Autocycler outputs are only planned earlier in the same dry run. Use `assemble`
-  only when validating the Flye-only path.
+  Autocycler outputs are only planned earlier in the same dry run.
 - **A barcode is rejected by the wrapper:** explicit selections must use the
   `barcodeNN` form and refer to directories directly beneath `BARCODE_ROOT`.
