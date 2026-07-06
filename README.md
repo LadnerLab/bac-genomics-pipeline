@@ -207,6 +207,12 @@ assembly_subsampled_reads_dir = "{project_root}/assembly/{barcode}_autocycler/su
 assembly_input_assemblies_dir = "{project_root}/assembly/{barcode}_autocycler/assemblies"
 polish_dir = "{project_root}/polish/{barcode}_medaka"
 polished_fasta = "{project_root}/polish/{barcode}_medaka/consensus.fasta"
+circularization_dir = "{project_root}/circularized/{barcode}_circlator"
+circularization_reads_dir = "{project_root}/circularized/{barcode}_circlator/00_reads"
+combined_trimmed_reads = "{project_root}/circularized/{barcode}_circlator/00_reads/{barcode}.trimmed.combined.fastq.gz"
+circlator_output_dir = "{project_root}/circularized/{barcode}_circlator/01_circlator"
+circularized_fasta = "{project_root}/circularized/{barcode}_circlator/01_circlator/06.fixstart.fasta"
+circlator_circularize_log = "{project_root}/circularized/{barcode}_circlator/01_circlator/04.merge.circularise.log"
 
 [tools.autocycler]
 executable = "autocycler"
@@ -225,6 +231,10 @@ combine_extra_args = []
 [tools.medaka]
 executable = "medaka_consensus"
 extra_args = ["--bacteria"]
+
+[tools.circlator]
+executable = "circlator"
+extra_args = ["--verbose", "--genes_fa", "/path/to/mergibacter_dnaA_ref.fasta"]
 ```
 
 The complete example contains every path required by the configured assembly,
@@ -275,7 +285,7 @@ exist beneath `BARCODE_ROOT`.
 | `DRY_RUN` | `0` | Set to `1` to append `--dry-run`. |
 | `CONDA_ENV` | `bacpipe` | Environment activated in each worker. |
 | `MAX_CONCURRENT_JOBS` | `4` | Maximum simultaneously running array tasks. |
-| `CPUS_PER_TASK` | `16` | CPUs requested per task and exposed to `bacpipe`. |
+| `CPUS_PER_TASK` | `8` | CPUs requested per task and exposed to `bacpipe`. |
 | `MEMORY` | `32G` | Memory requested per task. |
 | `TIME_LIMIT` | `03:00:00` | Wall time requested per task. |
 
