@@ -16,15 +16,12 @@ class PathBuilder {
     [[nodiscard]] static std::filesystem::path assembly_fasta(const PipelineConfig &config);
 
     [[nodiscard]] static std::filesystem::path combined_trimmed_fastq(const PipelineConfig &config);
-    [[nodiscard]] static std::filesystem::path autocycler_dir(const PipelineConfig &config);
     [[nodiscard]] static std::filesystem::path
-    autocycler_subsampled_reads_dir(const PipelineConfig &config);
+    assembly_subsampled_reads_dir(const PipelineConfig &config);
     [[nodiscard]] static std::filesystem::path
-    autocycler_input_assemblies_dir(const PipelineConfig &config);
-    [[nodiscard]] static std::filesystem::path
-    autocycler_consensus_fasta(const PipelineConfig &config);
-    [[nodiscard]] static std::filesystem::path medaka_dir(const PipelineConfig &config);
-    [[nodiscard]] static std::filesystem::path medaka_consensus_fasta(const PipelineConfig &config);
+    assembly_input_assemblies_dir(const PipelineConfig &config);
+    [[nodiscard]] static std::filesystem::path polish_dir(const PipelineConfig &config);
+    [[nodiscard]] static std::filesystem::path polished_fasta(const PipelineConfig &config);
 
     [[nodiscard]] static std::filesystem::path circularization_dir(const PipelineConfig &config);
     [[nodiscard]] static std::filesystem::path

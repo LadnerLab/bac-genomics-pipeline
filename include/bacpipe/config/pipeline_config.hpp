@@ -29,19 +29,16 @@ struct PipelinePathConfig {
     std::string raw_reads{"data/raw/{barcode}"};
     std::string trimmed_reads{"data/trimmed/{barcode}_porechop"};
 
-    std::string assembly_dir{"data/assembly/{barcode}_flye"};
-    std::string assembly_fasta{"data/assembly/{barcode}_flye/assembly.fasta"};
+    std::string assembly_dir{"data/assembly/{barcode}_autocycler"};
+    std::string assembly_fasta{"data/assembly/{barcode}_autocycler/consensus_assembly.fasta"};
 
     std::string combined_trimmed_fastq{
-        "data/autocycler/{barcode}/reads/{barcode}.trimmed.combined.fastq.gz"};
-    std::string autocycler_dir{"data/autocycler/{barcode}/autocycler_out"};
-    std::string autocycler_subsampled_reads_dir{"data/autocycler/{barcode}/subsampled_reads"};
-    std::string autocycler_input_assemblies_dir{"data/autocycler/{barcode}/assemblies"};
-    std::string autocycler_consensus_fasta{
-        "data/autocycler/{barcode}/autocycler_out/consensus_assembly.fasta"};
-    std::string medaka_dir{"data/autocycler/{barcode}/medaka_consensus"};
-    std::string medaka_consensus_fasta{
-        "data/autocycler/{barcode}/medaka_consensus/consensus.fasta"};
+        "data/assembly/{barcode}_autocycler/reads/{barcode}.trimmed.combined.fastq.gz"};
+    std::string assembly_subsampled_reads_dir{
+        "data/assembly/{barcode}_autocycler/subsampled_reads"};
+    std::string assembly_input_assemblies_dir{"data/assembly/{barcode}_autocycler/assemblies"};
+    std::string polish_dir{"data/polish/{barcode}_medaka"};
+    std::string polished_fasta{"data/polish/{barcode}_medaka/consensus.fasta"};
 
     std::string circularization_dir{"data/circularized/{barcode}_circlator"};
     std::string circularization_reads_dir{"data/circularized/{barcode}_circlator/00_reads"};

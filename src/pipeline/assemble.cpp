@@ -34,14 +34,12 @@ std::string sample_id(const std::uint32_t index) {
     return id.str();
 }
 
-std::filesystem::path genome_size_file(const std::filesystem::path &autocycler_dir) {
-    const std::filesystem::path parent = autocycler_dir.parent_path();
-
-    if (parent.empty()) {
+std::filesystem::path genome_size_file(const std::filesystem::path &assembly_dir) {
+    if (assembly_dir.empty()) {
         return "genome_size.txt";
     }
 
-    return parent / "genome_size.txt";
+    return assembly_dir / "genome_size.txt";
 }
 
 bool uses_auto_genome_size(const bacpipe::ToolConfig &autocycler) {
@@ -155,35 +153,35 @@ std::string build_helper_command(const std::filesystem::path &subsampled_read,
 }
 
 std::string build_compress_command(const std::filesystem::path &assemblies_dir,
-                                   const std::filesystem::path &autocycler_dir,
+                                   const std::filesystem::path &assembly_dir,
                                    const bacpipe::ToolConfig &tool,
                                    const std::uint32_t threads) {
     std::ostringstream command{};
 
-    command << mkdir_parent_command(autocycler_dir) << " && "
+    command << mkdir_parent_command(assembly_dir) << " && "
             << bacpipe::shell_quote(tool.executable) << " compress"
             << " -i " << bacpipe::shell_quote(assemblies_dir.string()) << " -a "
-            << bacpipe::shell_quote(autocycler_dir.string()) << " -t " << threads
+            << bacpipe::shell_quote(assembly_dir.string()) << " -t " << threads
             << bacpipe::join_shell_args(tool.compress_extra_args);
 
     return command.str();
 }
 
-std::string build_cluster_command(const std::filesystem::path &autocycler_dir,
+std::string build_cluster_command(const std::filesystem::path &assembly_dir,
                                   const bacpipe::ToolConfig &tool) {
     std::ostringstream command{};
 
     command << bacpipe::shell_quote(tool.executable) << " cluster"
-            << " -a " << bacpipe::shell_quote(autocycler_dir.string())
+            << " -a " << bacpipe::shell_quote(assembly_dir.string())
             << bacpipe::join_shell_args(tool.cluster_extra_args);
 
     return command.str();
 }
 
-std::string build_trim_resolve_command(const std::filesystem::path &autocycler_dir,
+std::string build_trim_resolve_command(const std::filesystem::path &assembly_dir,
                                        const bacpipe::ToolConfig &tool,
                                        const std::uint32_t threads) {
-    const std::filesystem::path qc_pass_dir = autocycler_dir / "clustering" / "qc_pass";
+    const std::filesystem::path qc_pass_dir = assembly_dir / "clustering" / "qc_pass";
     std::ostringstream command{};
 
     command << "for c in " << bacpipe::shell_quote(qc_pass_dir.string()) << "/cluster_*; do "
@@ -196,23 +194,24 @@ std::string build_trim_resolve_command(const std::filesystem::path &autocycler_d
     return command.str();
 }
 
-std::string build_combine_command(const std::filesystem::path &autocycler_dir,
+std::string build_combine_command(const std::filesystem::path &assembly_dir,
                                   const std::filesystem::path &configured_consensus,
                                   const bacpipe::ToolConfig &tool) {
-    const std::filesystem::path native_consensus = autocycler_dir / "consensus_assembly.fasta";
-    const std::filesystem::path qc_pass_dir = autocycler_dir / "clustering" / "qc_pass";
+    const std::filesystem::path native_consensus = assembly_dir / "consensus_assembly.fasta";
+    const std::filesystem::path qc_pass_dir = assembly_dir / "clustering" / "qc_pass";
 
     std::ostringstream command{};
 
     command << bacpipe::shell_quote(tool.executable) << " combine"
-            << " -a " << bacpipe::shell_quote(autocycler_dir.string()) << " -i "
+            << " -a " << bacpipe::shell_quote(assembly_dir.string()) << " -i "
             << bacpipe::shell_quote(qc_pass_dir.string()) << "/cluster_*/5_final.gfa"
-            << bacpipe::join_shell_args(tool.combine_extra_args) << " && if [ "
-            << bacpipe::shell_quote(native_consensus.string())
-            << " != " << bacpipe::shell_quote(configured_consensus.string()) << " ]; then "
-            << mkdir_parent_command(configured_consensus) << " && cp "
-            << bacpipe::shell_quote(native_consensus.string()) << " "
-            << bacpipe::shell_quote(configured_consensus.string()) << "; fi";
+            << bacpipe::join_shell_args(tool.combine_extra_args);
+
+    if (native_consensus != configured_consensus) {
+        command << " && " << mkdir_parent_command(configured_consensus) << " && cp "
+                << bacpipe::shell_quote(native_consensus.string()) << " "
+                << bacpipe::shell_quote(configured_consensus.string());
+    }
 
     return command.str();
 }
@@ -254,13 +253,13 @@ std::vector<PipelineStep> build_assemble_steps(const PipelineConfig &config) {
 
     const std::filesystem::path trimmed_dir = PathBuilder::trimmed_reads_dir(config);
     const std::filesystem::path combined_reads = PathBuilder::combined_trimmed_fastq(config);
-    const std::filesystem::path autocycler_dir = PathBuilder::autocycler_dir(config);
+    const std::filesystem::path assembly_dir = PathBuilder::assembly_dir(config);
     const std::filesystem::path subsampled_reads_dir =
-        PathBuilder::autocycler_subsampled_reads_dir(config);
+        PathBuilder::assembly_subsampled_reads_dir(config);
     const std::filesystem::path assemblies_dir =
-        PathBuilder::autocycler_input_assemblies_dir(config);
-    const std::filesystem::path consensus_fasta = PathBuilder::autocycler_consensus_fasta(config);
-    const std::filesystem::path genome_size_path = genome_size_file(autocycler_dir);
+        PathBuilder::assembly_input_assemblies_dir(config);
+    const std::filesystem::path consensus_fasta = PathBuilder::assembly_fasta(config);
+    const std::filesystem::path genome_size_path = genome_size_file(assembly_dir);
 
     const std::vector<std::filesystem::path> trimmed_reads =
         FileDiscovery::find_fastq_files(trimmed_dir);
@@ -320,30 +319,30 @@ std::vector<PipelineStep> build_assemble_steps(const PipelineConfig &config) {
 
     steps.push_back(PipelineStep{.name = "Compress Autocycler input assemblies",
                                  .command = build_compress_command(assemblies_dir,
-                                                                   autocycler_dir,
+                                                                   assembly_dir,
                                                                    config.autocycler,
                                                                    config.threads),
                                  .working_directory = config.project_root,
-                                 .expected_outputs = {autocycler_dir / "input_assemblies.gfa"},
+                                 .expected_outputs = {assembly_dir / "input_assemblies.gfa"},
                                  .skip_when_outputs_exist = true});
 
     steps.push_back(
         PipelineStep{.name = "Cluster Autocycler input contigs",
-                     .command = build_cluster_command(autocycler_dir, config.autocycler),
+                     .command = build_cluster_command(assembly_dir, config.autocycler),
                      .working_directory = config.project_root,
-                     .expected_outputs = {autocycler_dir / "clustering" / "qc_pass"},
+                     .expected_outputs = {assembly_dir / "clustering" / "qc_pass"},
                      .skip_when_outputs_exist = true});
 
     steps.push_back(PipelineStep{
         .name = "Trim and resolve Autocycler QC-pass clusters",
-        .command = build_trim_resolve_command(autocycler_dir, config.autocycler, config.threads),
+        .command = build_trim_resolve_command(assembly_dir, config.autocycler, config.threads),
         .working_directory = config.project_root,
         .expected_outputs = {},
         .skip_when_outputs_exist = false});
 
     steps.push_back(PipelineStep{
         .name = "Combine Autocycler resolved clusters",
-        .command = build_combine_command(autocycler_dir, consensus_fasta, config.autocycler),
+        .command = build_combine_command(assembly_dir, consensus_fasta, config.autocycler),
         .working_directory = config.project_root,
         .expected_outputs = {consensus_fasta},
         .skip_when_outputs_exist = true});
