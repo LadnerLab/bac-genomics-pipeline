@@ -97,8 +97,8 @@ Paths and filenames are controlled by the TOML configuration:
 | --- | --- | --- | --- |
 | `trim` | Raw FASTQ files | Porechop | One `*.trimmed.fastq.gz` per input file |
 | `assemble` preparation | Trimmed FASTQ files | `gzip`/`cat` | `combined_trimmed_fastq` |
-| `assemble` | Combined trimmed FASTQ | Autocycler | `autocycler_consensus_fasta` |
-| `polish` | Combined trimmed FASTQ plus Autocycler assembly | Medaka | `medaka_consensus_fasta` |
+| `assemble` | Combined trimmed FASTQ | Autocycler | `assembly_fasta` |
+| `polish` | Combined trimmed FASTQ plus Autocycler assembly | Medaka | `polished_fasta` |
 | `circularize` preparation | Trimmed FASTQ files | `seqkit fq2fa` | `combined_trimmed_reads` |
 | `circularize` | Assembly plus converted reads, and dnaA reference FASTA | Circlator | `circularized_fasta` and `circlator_circularize_log` |
 
@@ -179,6 +179,10 @@ Path templates support `{barcode}` and `{project_root}`. Absolute paths are used
 written. Relative paths are resolved beneath `[project].root`, which is also the
 working directory used to launch each external command.
 
+The checked-in configuration uses generalized stage keys with tool-specific
+directory suffixes, such as `assembly/{barcode}_autocycler` and
+`polish/{barcode}_medaka`, so outputs show both the pipeline stage and tool.
+
 For example:
 
 ```toml
@@ -196,11 +200,13 @@ stop_on_error = true
 [paths]
 raw_reads = "{project_root}/{barcode}"
 trimmed_reads = "{project_root}/trimmed/{barcode}_porechop"
-combined_trimmed_fastq = "{project_root}/autocycler/{barcode}/reads/{barcode}.trimmed.combined.fastq.gz"
-autocycler_dir = "{project_root}/autocycler/{barcode}/autocycler_out"
-autocycler_consensus_fasta = "{project_root}/autocycler/{barcode}/autocycler_out/consensus_assembly.fasta"
-medaka_dir = "{project_root}/autocycler/{barcode}/medaka_consensus"
-medaka_consensus_fasta = "{project_root}/autocycler/{barcode}/medaka_consensus/consensus.fasta"
+assembly_dir = "{project_root}/assembly/{barcode}_autocycler"
+assembly_fasta = "{project_root}/assembly/{barcode}_autocycler/consensus_assembly.fasta"
+combined_trimmed_fastq = "{project_root}/assembly/{barcode}_autocycler/reads/{barcode}.trimmed.combined.fastq.gz"
+assembly_subsampled_reads_dir = "{project_root}/assembly/{barcode}_autocycler/subsampled_reads"
+assembly_input_assemblies_dir = "{project_root}/assembly/{barcode}_autocycler/assemblies"
+polish_dir = "{project_root}/polish/{barcode}_medaka"
+polished_fasta = "{project_root}/polish/{barcode}_medaka/consensus.fasta"
 
 [tools.autocycler]
 executable = "autocycler"
@@ -221,8 +227,8 @@ executable = "medaka_consensus"
 extra_args = ["--bacteria"]
 ```
 
-The complete example contains every path required by Autocycler, Medaka, and
-optional circularization.
+The complete example contains every path required by the configured assembly,
+polishing, and optional circularization stages.
 
 ## Slurm array execution
 

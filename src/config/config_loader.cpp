@@ -158,18 +158,14 @@ PipelineConfig ConfigLoader::load(const std::filesystem::path &config_file, Pipe
         read_string(*paths, "assembly_fasta", config.paths.assembly_fasta);
 
         read_string(*paths, "combined_trimmed_fastq", config.paths.combined_trimmed_fastq);
-        read_string(*paths, "autocycler_dir", config.paths.autocycler_dir);
         read_string(*paths,
-                    "autocycler_subsampled_reads_dir",
-                    config.paths.autocycler_subsampled_reads_dir);
+                    "assembly_subsampled_reads_dir",
+                    config.paths.assembly_subsampled_reads_dir);
         read_string(*paths,
-                    "autocycler_input_assemblies_dir",
-                    config.paths.autocycler_input_assemblies_dir);
-        read_string(*paths,
-                    "autocycler_consensus_fasta",
-                    config.paths.autocycler_consensus_fasta);
-        read_string(*paths, "medaka_dir", config.paths.medaka_dir);
-        read_string(*paths, "medaka_consensus_fasta", config.paths.medaka_consensus_fasta);
+                    "assembly_input_assemblies_dir",
+                    config.paths.assembly_input_assemblies_dir);
+        read_string(*paths, "polish_dir", config.paths.polish_dir);
+        read_string(*paths, "polished_fasta", config.paths.polished_fasta);
 
         read_string(*paths, "circularization_dir", config.paths.circularization_dir);
         read_string(*paths, "circularization_reads_dir", config.paths.circularization_reads_dir);
