@@ -13,6 +13,9 @@ reporting is not implemented yet. Generated commands use POSIX shell features, s
 the supported execution environment is Linux. The primary deployment target is a
 Slurm-based HPC cluster (i.e., Monsoon).
 
+New to the project? Start with the [onboarding guide](docs/onboarding.md) for
+researcher and developer first-day workflows.
+
 ## HPC quick start
 
 ### Prerequisites
@@ -297,6 +300,9 @@ Slurm output and error logs use:
 ```
 
 The table above reflects the variables currently assigned by the script.
+Although the script header requests six hours, submit mode passes `--time` from
+`TIME_LIMIT` to `sbatch`; therefore the table's `03:00:00` value is the effective
+default allocation.
 
 ## Troubleshooting
 
